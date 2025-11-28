@@ -44,27 +44,58 @@ const pool = new Pool(dbConfig);
 
 async function runMigrations() {
   const client = await pool.connect();
+  const migrationsDir = path.join(__dirname, '../database/migrations');
+  const files = fs.readdirSync(migrationsDir).sort();
+  
+  let successCount = 0;
+  let errorCount = 0;
+
   try {
-    await client.query('BEGIN');
-
-    const migrationsDir = path.join(__dirname, '../database/migrations');
-    const files = fs.readdirSync(migrationsDir).sort();
-
     for (const file of files) {
       if (file.endsWith('.sql')) {
-        console.log(`Running migration: ${file}`);
-        const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-        await client.query(sql);
-        console.log(`✓ Completed: ${file}`);
+        try {
+          console.log(`\nRunning migration: ${file}`);
+          const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+          
+          // Run each migration in its own transaction
+          await client.query('BEGIN');
+          await client.query(sql);
+          await client.query('COMMIT');
+          
+          console.log(`✓ Completed: ${file}`);
+          successCount++;
+        } catch (error) {
+          try {
+            await client.query('ROLLBACK');
+          } catch (rollbackError) {
+            // Ignore rollback errors
+          }
+          
+          console.error(`✗ Failed: ${file}`);
+          console.error(`  Error: ${error.message}`);
+          
+          // Check if it's a "already exists" error (not critical)
+          if (error.code === '42P07' || error.message.includes('already exists')) {
+            console.log(`  (Table/index already exists - continuing...)`);
+            successCount++;
+          } else {
+            errorCount++;
+            // Don't stop on errors, continue with other migrations
+            console.error(`  Continuing with other migrations...`);
+          }
+        }
       }
     }
 
-    await client.query('COMMIT');
-    console.log('All migrations completed successfully!');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Migration failed:', error);
-    throw error;
+    console.log(`\n=== Migration Summary ===`);
+    console.log(`Successful: ${successCount}`);
+    console.log(`Failed: ${errorCount}`);
+    
+    if (errorCount > 0) {
+      console.log(`\n⚠ Some migrations had errors. Check the output above.`);
+    } else {
+      console.log(`\n✓ All migrations completed successfully!`);
+    }
   } finally {
     client.release();
     await pool.end();

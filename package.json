@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "node scripts/migrate.js",
+    "db:check-forms": "node scripts/check-forms-table.js",
+    "db:create-forms-table": "node scripts/create-forms-table.js",
     "db:seed": "node scripts/seed.js",
     "setup:env": "node scripts/setup-env.js",
     "type-check": "tsc --noEmit"

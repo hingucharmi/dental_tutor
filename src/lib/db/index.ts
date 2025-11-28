@@ -64,8 +64,10 @@ export async function query(text: string, params?: any[]) {
       );
     }
     if (error?.code === '42P01') {
+      const tableName = error?.message?.match(/relation "(\w+)"/)?.[1] || 'table';
       throw new Error(
-        'Database table does not exist. Please run migrations: npm run db:migrate'
+        `Database table "${tableName}" does not exist. ` +
+        `Run: npm run db:migrate or npm run db:create-forms-table (for forms table)`
       );
     }
     
