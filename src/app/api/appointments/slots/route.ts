@@ -62,15 +62,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const selectedDate = new Date(date);
+    // Parse date properly - handle YYYY-MM-DD format
+    const selectedDate = new Date(date + 'T00:00:00'); // Add time to avoid timezone issues
+    
+    // Validate date
+    if (isNaN(selectedDate.getTime())) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid date format. Use YYYY-MM-DD' },
+        { status: 400 }
+      );
+    }
+
     const dayName = getDayName(selectedDate);
     const hours = BUSINESS_HOURS[dayName as keyof typeof BUSINESS_HOURS];
 
     if (!hours) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
-        data: { slots: [], date, available: false },
+        data: { slots: [], date, available: false, message: `No business hours for ${dayName}` },
       });
+      return addCorsHeaders(response, req);
     }
 
     // Get booked appointments for the date
@@ -117,11 +128,18 @@ export async function GET(req: NextRequest) {
     });
 
     return addCorsHeaders(result, req);
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch available slots' },
+  } catch (error: any) {
+    console.error('Slots API error:', error);
+    const errorMessage = error?.message || 'Failed to fetch available slots';
+    const response = NextResponse.json(
+      { 
+        success: false, 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
+    return addCorsHeaders(response, req);
   }
 }
 

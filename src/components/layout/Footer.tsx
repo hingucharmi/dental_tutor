@@ -35,13 +35,13 @@ export function Footer() {
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
-                  Contact Us
+                <Link href="/support" className="hover:text-white transition-colors">
+                  Support Center
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="hover:text-white transition-colors">
-                  FAQ
+                <Link href="/faqs" className="hover:text-white transition-colors">
+                  FAQs
                 </Link>
               </li>
             </ul>

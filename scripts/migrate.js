@@ -75,9 +75,14 @@ async function runMigrations() {
           console.error(`  Error: ${error.message}`);
           
           // Check if it's a "already exists" error (not critical)
-          if (error.code === '42P07' || error.message.includes('already exists')) {
-            console.log(`  (Table/index already exists - continuing...)`);
+          if (error.code === '42P07' || error.code === '42710' || error.message.includes('already exists')) {
+            console.log(`  (Table/index/trigger already exists - continuing...)`);
             successCount++;
+          } else if (error.code === '42703' && error.message.includes('does not exist')) {
+            // Column/object doesn't exist - might be a migration order issue, but continue
+            console.log(`  (Object doesn't exist - may need manual fix: ${error.message})`);
+            errorCount++;
+            console.error(`  Continuing with other migrations...`);
           } else {
             errorCount++;
             // Don't stop on errors, continue with other migrations

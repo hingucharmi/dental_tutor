@@ -15,24 +15,52 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Try payment_transactions first (Phase 5), fallback to payments (Phase 3)
     let queryStr = `
-      SELECT p.*, a.appointment_date, a.appointment_time, s.name as service_name
-      FROM payments p
-      LEFT JOIN appointments a ON p.appointment_id = a.id
+      SELECT pt.*, a.appointment_date, a.appointment_time, s.name as service_name
+      FROM payment_transactions pt
+      LEFT JOIN appointments a ON pt.appointment_id = a.id
       LEFT JOIN services s ON a.service_id = s.id
-      WHERE p.user_id = $1
+      WHERE pt.user_id = $1
     `;
     const params: any[] = [user.id];
 
     if (status) {
-      queryStr += ' AND p.status = $2';
+      queryStr += ' AND pt.status = $2';
       params.push(status);
     }
 
-    queryStr += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    queryStr += ` ORDER BY pt.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
-    const result = await query(queryStr, params);
+    let result;
+    try {
+      result = await query(queryStr, params);
+    } catch (error: any) {
+      // Fallback to payments table if payment_transactions doesn't exist
+      if (error?.code === '42P01' && error?.message?.includes('payment_transactions')) {
+        queryStr = `
+          SELECT p.*, a.appointment_date, a.appointment_time, s.name as service_name
+          FROM payments p
+          LEFT JOIN appointments a ON p.appointment_id = a.id
+          LEFT JOIN services s ON a.service_id = s.id
+          WHERE p.user_id = $1
+        `;
+        const fallbackParams: any[] = [user.id];
+        
+        if (status) {
+          queryStr += ' AND p.status = $2';
+          fallbackParams.push(status);
+        }
+        
+        queryStr += ` ORDER BY p.created_at DESC LIMIT $${fallbackParams.length + 1} OFFSET $${fallbackParams.length + 2}`;
+        fallbackParams.push(limit, offset);
+        
+        result = await query(queryStr, fallbackParams);
+      } else {
+        throw error;
+      }
+    }
 
     const payments = result.rows.map((row) => ({
       id: row.id,
@@ -44,9 +72,9 @@ export async function GET(req: NextRequest) {
       amount: parseFloat(row.amount),
       paymentMethod: row.payment_method,
       status: row.status,
-      transactionId: row.transaction_id,
-      invoiceNumber: row.invoice_number,
-      paidAt: row.paid_at,
+      transactionId: row.transaction_id || row.gateway_transaction_id,
+      invoiceNumber: row.invoice_number || null,
+      paidAt: row.paid_at || (row.status === 'completed' ? row.updated_at : null),
       createdAt: row.created_at,
     }));
 

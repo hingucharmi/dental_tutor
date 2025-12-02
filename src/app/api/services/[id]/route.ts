@@ -9,10 +9,11 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const serviceId = parseInt(params.id);
+    const { id } = await params;
+    const serviceId = parseInt(id);
 
     const result = await query(
       'SELECT * FROM services WHERE id = $1',

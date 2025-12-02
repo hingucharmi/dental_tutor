@@ -39,7 +39,27 @@ export function useAuth(requireAuth: boolean = false) {
   useEffect(() => {
     // Redirect if auth is required but user is not authenticated
     if (requireAuth && !loading && !isAuthenticated && pathname) {
-      const protectedPaths = ['/dashboard', '/appointments', '/profile', '/chat'];
+      const protectedPaths = [
+        '/dashboard', 
+        '/appointments', 
+        '/profile', 
+        '/chat',
+        '/waitlist',
+        '/prescriptions',
+        '/insurance',
+        '/notifications',
+        '/payments',
+        '/treatment-plans',
+        '/recurring-appointments',
+        '/urgent-appointments',
+        '/family-members',
+        '/forms',
+        '/referrals',
+        '/documents',
+        '/recommendations',
+        '/images',
+        '/loyalty',
+      ];
       if (protectedPaths.some(path => pathname.startsWith(path))) {
         router.push('/auth/login');
       }

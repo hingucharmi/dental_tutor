@@ -41,7 +41,10 @@ export async function query(text: string, params?: any[]) {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    // Only log queries in development if DB_DEBUG is enabled
+    if (process.env.DB_DEBUG === 'true' && process.env.NODE_ENV !== 'production') {
+      console.log('Executed query', { text, duration, rows: res.rowCount });
+    }
     return res;
   } catch (error: any) {
     console.error('Database query error', { text, error });

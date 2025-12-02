@@ -15,15 +15,25 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate');
     const status = searchParams.get('status');
 
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in YYYY-MM-DD format (local timezone)
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Get current time in HH:MM format (local timezone)
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
     let queryStr = `
       SELECT a.*, s.name as service_name, s.description as service_description
       FROM appointments a
       LEFT JOIN services s ON a.service_id = s.id
-      WHERE a.user_id = $1 AND a.appointment_date < $2
+      WHERE a.user_id = $1 
+      AND (
+        a.appointment_date < $2::date
+        OR (a.appointment_date = $2::date AND a.appointment_time::time < $3::time)
+      )
     `;
-    const params: any[] = [user.id, startDate || today];
+    const params: any[] = [user.id, startDate || todayStr, currentTime];
 
     if (endDate) {
       queryStr += ' AND a.appointment_date >= $3';

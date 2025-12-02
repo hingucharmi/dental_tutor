@@ -96,7 +96,7 @@ export default function ServiceDetailPage() {
 
         <div className="mt-8 pt-6 border-t border-secondary-200">
           <Link
-            href="/appointments"
+            href={`/appointments/book?serviceId=${service.id}`}
             className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Book Appointment

@@ -3,7 +3,8 @@ import { query } from '@/lib/db';
 import { addCorsHeaders } from '@/lib/middleware/cors';
 
 export async function OPTIONS(req: NextRequest) {
-  return new NextResponse(null, { status: 200 });
+  const response = new NextResponse(null, { status: 200 });
+  return addCorsHeaders(response, req);
 }
 
 export async function GET(req: NextRequest) {
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
     );
 
     if (result.rows.length === 0) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         data: {
           office: {
@@ -37,9 +38,22 @@ export async function GET(req: NextRequest) {
           },
         },
       });
+      return addCorsHeaders(response, req);
     }
 
     const row = result.rows[0];
+    
+    // Parse office_hours if it's a string (should be JSONB object, but handle both cases)
+    let officeHours = row.office_hours;
+    if (typeof officeHours === 'string') {
+      try {
+        officeHours = JSON.parse(officeHours);
+      } catch (e) {
+        console.warn('Failed to parse office_hours JSON:', e);
+        officeHours = null;
+      }
+    }
+    
     const office = {
       id: row.id,
       name: row.name,
@@ -50,10 +64,10 @@ export async function GET(req: NextRequest) {
       country: row.country,
       phone: row.phone,
       email: row.email,
-      latitude: parseFloat(row.latitude) || null,
-      longitude: parseFloat(row.longitude) || null,
+      latitude: row.latitude ? parseFloat(row.latitude) : null,
+      longitude: row.longitude ? parseFloat(row.longitude) : null,
       parkingInfo: row.parking_info,
-      officeHours: row.office_hours,
+      officeHours: officeHours,
     };
 
     const response = NextResponse.json({
@@ -62,11 +76,16 @@ export async function GET(req: NextRequest) {
     });
 
     return addCorsHeaders(response, req);
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch office information' },
+  } catch (error: any) {
+    console.error('Error fetching office information:', error);
+    const errorResponse = NextResponse.json(
+      { 
+        success: false, 
+        error: error?.message || 'Failed to fetch office information' 
+      },
       { status: 500 }
     );
+    return addCorsHeaders(errorResponse, req);
   }
 }
 
