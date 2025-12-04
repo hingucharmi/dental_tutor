@@ -38,11 +38,52 @@ export async function POST(req: NextRequest) {
         );
         return addCorsHeaders(errorResponse, req);
       }
+
+      // Check if payment already exists for this appointment
+      const existingPayment = await query(
+        `SELECT id, status, amount FROM payment_transactions 
+         WHERE appointment_id = $1 
+         AND status IN ('completed', 'pending', 'processing')
+         ORDER BY created_at DESC LIMIT 1`,
+        [data.appointmentId]
+      );
+
+      if (existingPayment.rows.length > 0) {
+        const existing = existingPayment.rows[0];
+        const errorResponse = NextResponse.json(
+          { 
+            success: false, 
+            error: `Payment already exists for this appointment. Payment status: ${existing.status}`,
+            existingPayment: {
+              id: existing.id,
+              status: existing.status,
+              amount: parseFloat(existing.amount),
+            }
+          },
+          { status: 400 }
+        );
+        return addCorsHeaders(errorResponse, req);
+      }
     }
 
     // TODO: Integrate with payment gateway (Stripe/PayPal)
     // For now, create a pending transaction
     const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generate invoice number: INV-YYYY-NNNNNN format
+    const year = new Date().getFullYear();
+    const invoiceCountResult = await query(
+      `SELECT COUNT(*) as count FROM payment_transactions 
+       WHERE EXTRACT(YEAR FROM created_at) = $1`,
+      [year]
+    );
+    const invoiceNumber = `INV-${year}-${String(parseInt(invoiceCountResult.rows[0].count) + 1).padStart(6, '0')}`;
+    
+    // Add invoice number to metadata
+    const metadataWithInvoice = {
+      ...(data.metadata || {}),
+      invoiceNumber: invoiceNumber,
+    };
     
     const result = await query(
       `INSERT INTO payment_transactions 
@@ -58,7 +99,7 @@ export async function POST(req: NextRequest) {
         data.paymentMethod,
         ['stripe', 'paypal'].includes(data.paymentMethod) ? data.paymentMethod : null,
         transactionId,
-        data.metadata ? JSON.stringify(data.metadata) : null,
+        JSON.stringify(metadataWithInvoice),
       ]
     );
 
@@ -76,12 +117,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const transaction = result.rows[0];
+    const finalStatus = ['stripe', 'paypal'].includes(data.paymentMethod) ? 'completed' : 'pending';
+    
+    // Update status if needed
+    if (finalStatus === 'completed' && transaction.status !== 'completed') {
+      await query(
+        `UPDATE payment_transactions 
+         SET status = 'completed', updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [transaction.id]
+      );
+    }
+
     const response = NextResponse.json({
       success: true,
+      message: 'Payment processed successfully',
       data: { 
         transaction: {
-          ...result.rows[0],
-          status: ['stripe', 'paypal'].includes(data.paymentMethod) ? 'completed' : 'pending',
+          ...transaction,
+          status: finalStatus,
+          invoiceNumber: invoiceNumber,
+          subtotal: data.metadata?.subtotal || data.amount,
+          taxAmount: data.metadata?.taxAmount || 0,
+          taxRate: data.metadata?.taxRate || 0,
+          totalAmount: data.amount,
         }
       },
     }, { status: 201 });

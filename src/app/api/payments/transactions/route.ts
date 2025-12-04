@@ -40,23 +40,30 @@ export async function GET(req: NextRequest) {
 
     const result = await query(queryStr, params);
 
-    const transactions = result.rows.map((row: any) => ({
-      id: row.id,
-      appointmentId: row.appointment_id,
-      amount: parseFloat(row.amount),
-      currency: row.currency,
-      paymentMethod: row.payment_method,
-      paymentGateway: row.payment_gateway,
-      transactionId: row.transaction_id,
-      gatewayTransactionId: row.gateway_transaction_id,
-      status: row.status,
-      receiptUrl: row.receipt_url,
-      metadata: row.metadata,
-      appointmentDate: row.appointment_date,
-      appointmentTime: row.appointment_time,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    const transactions = result.rows.map((row: any) => {
+      const metadata = row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : {};
+      return {
+        id: row.id,
+        appointmentId: row.appointment_id,
+        amount: parseFloat(row.amount),
+        currency: row.currency || 'USD',
+        paymentMethod: row.payment_method,
+        paymentGateway: row.payment_gateway,
+        transactionId: row.transaction_id || row.gateway_transaction_id,
+        gatewayTransactionId: row.gateway_transaction_id,
+        status: row.status,
+        receiptUrl: row.receipt_url,
+        metadata: metadata,
+        subtotal: metadata.subtotal || parseFloat(row.amount),
+        taxAmount: metadata.taxAmount || 0,
+        taxRate: metadata.taxRate || 0,
+        invoiceNumber: metadata.invoiceNumber || null,
+        appointmentDate: row.appointment_date,
+        appointmentTime: row.appointment_time,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    });
 
     const response = NextResponse.json({
       success: true,

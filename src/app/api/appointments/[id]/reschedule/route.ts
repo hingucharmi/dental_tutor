@@ -28,7 +28,7 @@ export async function PUT(
 
     // Check if appointment exists and belongs to user
     const checkResult = await query(
-      'SELECT id, status FROM appointments WHERE id = $1 AND user_id = $2',
+      'SELECT id, status, has_been_rescheduled, reschedule_count FROM appointments WHERE id = $1 AND user_id = $2',
       [appointmentId, user.id]
     );
 
@@ -36,9 +36,19 @@ export async function PUT(
       throw new NotFoundError('Appointment not found');
     }
 
-    if (checkResult.rows[0].status === 'cancelled') {
+    const appointment = checkResult.rows[0];
+
+    if (appointment.status === 'cancelled') {
       return NextResponse.json(
         { success: false, error: 'Cannot reschedule a cancelled appointment' },
+        { status: 400 }
+      );
+    }
+
+    // Check if appointment has already been rescheduled before
+    if (appointment.has_been_rescheduled || appointment.reschedule_count > 0) {
+      return NextResponse.json(
+        { success: false, error: 'This appointment has already been rescheduled. You can only reschedule an appointment once.' },
         { status: 400 }
       );
     }
@@ -63,7 +73,11 @@ export async function PUT(
     // Update appointment
     const result = await query(
       `UPDATE appointments 
-       SET appointment_date = $1, appointment_time = $2, status = 'rescheduled'
+       SET appointment_date = $1, 
+           appointment_time = $2, 
+           status = 'rescheduled',
+           has_been_rescheduled = TRUE,
+           reschedule_count = reschedule_count + 1
        WHERE id = $3
        RETURNING id, appointment_date, appointment_time, status`,
       [appointmentDate, appointmentTime, appointmentId]

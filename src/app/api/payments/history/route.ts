@@ -62,21 +62,30 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const payments = result.rows.map((row) => ({
-      id: row.id,
-      userId: row.user_id,
-      appointmentId: row.appointment_id,
-      appointmentDate: row.appointment_date,
-      appointmentTime: row.appointment_time,
-      serviceName: row.service_name,
-      amount: parseFloat(row.amount),
-      paymentMethod: row.payment_method,
-      status: row.status,
-      transactionId: row.transaction_id || row.gateway_transaction_id,
-      invoiceNumber: row.invoice_number || null,
-      paidAt: row.paid_at || (row.status === 'completed' ? row.updated_at : null),
-      createdAt: row.created_at,
-    }));
+    const payments = result.rows.map((row) => {
+      const metadata = row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : {};
+      // Extract invoice number from metadata if it exists, otherwise use invoice_number column
+      const invoiceNumber = metadata.invoiceNumber || row.invoice_number || null;
+      
+      return {
+        id: row.id,
+        userId: row.user_id,
+        appointmentId: row.appointment_id,
+        appointmentDate: row.appointment_date,
+        appointmentTime: row.appointment_time,
+        serviceName: row.service_name || metadata.serviceName,
+        amount: parseFloat(row.amount),
+        subtotal: metadata.subtotal || parseFloat(row.amount),
+        taxAmount: metadata.taxAmount || 0,
+        taxRate: metadata.taxRate || 0,
+        paymentMethod: row.payment_method,
+        status: row.status,
+        transactionId: row.transaction_id || row.gateway_transaction_id,
+        invoiceNumber: invoiceNumber,
+        paidAt: row.paid_at || (row.status === 'completed' ? row.updated_at : null),
+        createdAt: row.created_at,
+      };
+    });
 
     const response = NextResponse.json({
       success: true,

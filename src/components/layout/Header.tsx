@@ -190,6 +190,13 @@ export function Header() {
                             >
                               Insurance
                             </Link>
+                            <Link
+                              href="/compliance"
+                              className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
+                              onClick={() => setMoreMenuOpen(false)}
+                            >
+                              Treatment Compliance
+                            </Link>
                             <div className="border-t border-secondary-200 my-1"></div>
                           </>
                         )}
@@ -420,6 +427,13 @@ export function Header() {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Insurance
+                    </Link>
+                    <Link
+                      href="/compliance"
+                      className="block py-2 text-secondary-700 hover:text-primary-600"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Treatment Compliance
                     </Link>
                   </div>
                 )}

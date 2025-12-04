@@ -18,6 +18,9 @@ interface OfficeInfo {
   zipCode: string;
   phone: string;
   email: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  country?: string;
 }
 
 interface EmergencyContact {
@@ -25,6 +28,36 @@ interface EmergencyContact {
   phone: string;
   email?: string;
   description?: string;
+}
+
+// Google Maps Component
+function OfficeMap({ office }: { office: OfficeInfo }) {
+  const fullAddress = `${office.address}, ${office.city}, ${office.state} ${office.zipCode}${office.country ? `, ${office.country}` : ''}`;
+  
+  // Build Google Maps embed URL
+  // Using Google Maps Embed API - works without API key for basic usage
+  const getMapUrl = () => {
+    // If we have coordinates, use them (more accurate)
+    if (office.latitude && office.longitude) {
+      return `https://www.google.com/maps?q=${office.latitude},${office.longitude}&hl=en&z=15&output=embed`;
+    }
+    // Otherwise use address search
+    return `https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&hl=en&z=15&output=embed`;
+  };
+
+  return (
+    <iframe
+      width="100%"
+      height="100%"
+      style={{ border: 0 }}
+      loading="lazy"
+      allowFullScreen
+      referrerPolicy="no-referrer-when-downgrade"
+      src={getMapUrl()}
+      title={`${office.name} Location Map`}
+      className="w-full h-full"
+    />
+  );
 }
 
 export default function SupportPage() {
@@ -63,10 +96,23 @@ export default function SupportPage() {
   const fetchContactInfo = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/contact');
-      if (response.data.success) {
-        setOffice(response.data.data.office);
-        setEmergencyContacts(response.data.data.emergencyContacts || []);
+      // Fetch office info with coordinates
+      const officeResponse = await apiClient.get('/api/office');
+      if (officeResponse.data.success) {
+        setOffice(officeResponse.data.data.office);
+      }
+      // Fetch emergency contacts
+      try {
+        const emergencyResponse = await apiClient.get('/api/emergency-contacts');
+        if (emergencyResponse.data.success) {
+          setEmergencyContacts(emergencyResponse.data.data.emergencyContacts || []);
+        }
+      } catch (err) {
+        // Fallback to contact API if emergency-contacts doesn't exist
+        const contactResponse = await apiClient.get('/api/contact');
+        if (contactResponse.data.success) {
+          setEmergencyContacts(contactResponse.data.data.emergencyContacts || []);
+        }
       }
     } catch (error) {
       console.error('Error fetching contact info:', error);
@@ -160,9 +206,11 @@ export default function SupportPage() {
 
       {/* Contact Us Tab */}
       {activeTab === 'contact' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Contact Form */}
-          <div className="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <div className="space-y-8">
+          {/* Contact Form and Info Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Contact Form */}
+            <div className="bg-white rounded-lg shadow-md p-6 sm:p-8">
             <h2 className="text-2xl font-semibold text-primary-700 mb-6">
               Send us a Message
             </h2>
@@ -279,6 +327,36 @@ export default function SupportPage() {
                   </div>
                 )}
 
+                {/* Map Section - Below Office Information */}
+                {office && (
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="p-6 sm:p-8 border-b border-secondary-200">
+                      <h2 className="text-2xl font-semibold text-primary-700 mb-2">
+                        Find Us
+                      </h2>
+                      <p className="text-secondary-600 text-sm">
+                        Visit our clinic at the location shown on the map below
+                      </p>
+                    </div>
+                    <div className="w-full h-[400px] bg-secondary-100 relative">
+                      <OfficeMap office={office} />
+                    </div>
+                    <div className="p-4 bg-secondary-50 border-t border-secondary-200">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${office.address}, ${office.city}, ${office.state} ${office.zipCode}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open in Google Maps
+                      </a>
+                    </div>
+                  </div>
+                )}
+
                 {emergencyContacts.length > 0 && (
                   <div className="bg-white rounded-lg shadow-md p-6 sm:p-8">
                     <h2 className="text-2xl font-semibold text-primary-700 mb-4">
@@ -314,6 +392,7 @@ export default function SupportPage() {
                 )}
               </>
             )}
+          </div>
           </div>
         </div>
       )}

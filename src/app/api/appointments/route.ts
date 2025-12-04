@@ -53,6 +53,25 @@ export async function POST(req: NextRequest) {
       throw validationError;
     }
 
+    // Check if user already has an appointment for the same service on the same day
+    if (data.serviceId) {
+      const duplicateAppointment = await query(
+        `SELECT id FROM appointments 
+         WHERE user_id = $1 
+         AND service_id = $2 
+         AND appointment_date = $3 
+         AND status != 'cancelled'`,
+        [user.id, data.serviceId, data.appointmentDate]
+      );
+
+      if (duplicateAppointment.rows.length > 0) {
+        return NextResponse.json(
+          { success: false, error: 'You already have an appointment for this treatment on this date. Please choose a different date or treatment.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if slot is available
     const existingAppointment = await query(
       `SELECT id FROM appointments 

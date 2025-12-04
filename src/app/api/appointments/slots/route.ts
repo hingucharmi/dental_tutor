@@ -84,6 +84,12 @@ export async function GET(req: NextRequest) {
       return addCorsHeaders(response, req);
     }
 
+    // Get current date/time to filter out past slots
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const isToday = date === todayStr;
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
     // Get booked appointments for the date
     let bookedSlotsQuery = `
       SELECT appointment_time, duration 
@@ -115,12 +121,23 @@ export async function GET(req: NextRequest) {
 
     // Generate all available slots
     const allSlots = generateTimeSlots(hours.start, hours.end);
-    const availableSlots = allSlots.filter((slot) => !bookedSlots.has(slot));
+    
+    // Filter out past times if the selected date is today
+    const validSlots = isToday 
+      ? allSlots.filter((slot) => slot > currentTime)
+      : allSlots;
+    
+    const availableSlots = validSlots.filter((slot) => !bookedSlots.has(slot));
+    const bookedSlotsArray = Array.from(bookedSlots).filter((slot) => 
+      isToday ? slot > currentTime : true
+    );
 
     const result = NextResponse.json({
       success: true,
       data: {
         slots: availableSlots,
+        bookedSlots: bookedSlotsArray,
+        allSlots: validSlots,
         date,
         available: availableSlots.length > 0,
         businessHours: hours,

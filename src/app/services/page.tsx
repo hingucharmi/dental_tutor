@@ -56,13 +56,20 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="heading-responsive font-bold text-primary-700 mb-4">
-          Our Services
-        </h1>
-        <p className="text-secondary-600">
-          Explore our comprehensive dental care services
-        </p>
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary-600 to-blue-600 rounded-2xl p-8 md:p-12 text-white">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="relative z-10">
+          <h1 className="heading-responsive font-bold mb-4">
+            Our Services
+          </h1>
+          <p className="text-lg opacity-90 max-w-2xl">
+            Explore our comprehensive dental care services designed to keep your smile healthy and bright
+          </p>
+        </div>
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full -ml-24 -mb-24"></div>
       </div>
 
       {/* Search and Filter */}
@@ -97,17 +104,30 @@ export default function ServicesPage() {
           <Link
             key={service.id}
             href={`/services/${service.id}`}
-            className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-secondary-200"
+            className="group p-6 bg-white rounded-xl shadow-md hover:shadow-2xl transition-all transform hover:-translate-y-2 border border-secondary-200 overflow-hidden relative"
           >
-            <h2 className="text-xl font-semibold mb-2 text-primary-700">
+            {/* Decorative gradient overlay */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary-100 to-blue-100 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-75 transition-opacity"></div>
+            
+            {/* Service Icon */}
+            <div className="relative z-10 w-14 h-14 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            
+            <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">
               {service.name}
             </h2>
-            <p className="text-secondary-600 mb-4 line-clamp-2">
+            <p className="text-secondary-600 mb-4 line-clamp-2 relative z-10">
               {service.description || 'No description available'}
             </p>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-secondary-500">
-                Duration: {service.duration} min
+            <div className="flex justify-between items-center relative z-10">
+              <span className="text-sm text-secondary-500 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {service.duration} min
               </span>
               {service.basePrice && (
                 <span className="text-lg font-semibold text-primary-600">
@@ -116,7 +136,7 @@ export default function ServicesPage() {
               )}
             </div>
             {service.category && (
-              <span className="inline-block mt-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded">
+              <span className="inline-block mt-3 px-3 py-1 text-xs font-medium bg-gradient-to-r from-primary-100 to-blue-100 text-primary-700 rounded-full relative z-10">
                 {service.category}
               </span>
             )}

@@ -15,6 +15,10 @@ interface Appointment {
   serviceName?: string;
   dentistId?: number;
   notes?: string;
+  hasBeenRescheduled?: boolean;
+  hasBeenCancelled?: boolean;
+  rescheduleCount?: number;
+  cancelCount?: number;
 }
 
 export default function AppointmentsPage() {
@@ -23,6 +27,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'staff';
   const isDentist = user?.role === 'dentist';
@@ -54,15 +59,28 @@ export default function AppointmentsPage() {
 
     window.addEventListener('appointment-created', handleAppointmentCreated);
     
-    // Check for success query param
+    // Check for success/rescheduled query params
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
       console.log('Success param detected, refreshing appointments...');
+      setSuccessMessage('Appointment booked successfully!');
       // Small delay to ensure page is ready
       setTimeout(() => {
         fetchAppointments();
         // Remove query param from URL
         window.history.replaceState({}, '', '/appointments');
+        setTimeout(() => setSuccessMessage(null), 5000);
+      }, 200);
+    }
+    if (urlParams.get('rescheduled') === 'true') {
+      console.log('Rescheduled param detected, refreshing appointments...');
+      setSuccessMessage('Appointment rescheduled successfully!');
+      // Small delay to ensure page is ready
+      setTimeout(() => {
+        fetchAppointments();
+        // Remove query param from URL
+        window.history.replaceState({}, '', '/appointments');
+        setTimeout(() => setSuccessMessage(null), 5000);
       }, 200);
     }
 
@@ -198,6 +216,26 @@ export default function AppointmentsPage() {
         </button>
       </div>
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>{successMessage}</span>
+          </div>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="text-green-700 hover:text-green-900"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -245,6 +283,8 @@ export default function AppointmentsPage() {
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
                     appointment.status === 'scheduled'
                       ? 'bg-green-100 text-green-700'
+                      : appointment.status === 'rescheduled'
+                      ? 'bg-yellow-100 text-yellow-700'
                       : appointment.status === 'completed'
                       ? 'bg-blue-100 text-blue-700'
                       : appointment.status === 'cancelled'
@@ -260,19 +300,44 @@ export default function AppointmentsPage() {
                 <p className="text-sm text-secondary-600 mb-4">{appointment.notes}</p>
               )}
 
-              {activeTab === 'upcoming' && appointment.status === 'scheduled' && (
+              {activeTab === 'upcoming' && (appointment.status === 'scheduled' || appointment.status === 'rescheduled') && (
                 <div className="flex gap-2 mt-4">
                   <Link
                     href={`/appointments/${appointment.id}/reschedule`}
-                    className="flex-1 px-4 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors text-center text-sm"
+                    className={`flex-1 px-4 py-2 rounded-lg transition-colors text-center text-sm ${
+                      appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'
+                        : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
+                    }`}
+                    onClick={(e) => {
+                      if (appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)) {
+                        e.preventDefault();
+                        alert('This appointment has already been rescheduled. You can only reschedule an appointment once.');
+                      }
+                    }}
                   >
-                    Reschedule
+                    {appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)
+                      ? 'Already Rescheduled'
+                      : 'Reschedule'}
                   </Link>
                   <button
-                    onClick={() => handleCancel(appointment.id)}
-                    className="flex-1 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
+                    onClick={() => {
+                      if (appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)) {
+                        alert('This appointment has already been cancelled. You can only cancel an appointment once.');
+                        return;
+                      }
+                      handleCancel(appointment.id);
+                    }}
+                    disabled={appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)}
+                    className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm ${
+                      appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                    }`}
                   >
-                    Cancel
+                    {appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)
+                      ? 'Already Cancelled'
+                      : 'Cancel'}
                   </button>
                 </div>
               )}

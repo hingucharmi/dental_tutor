@@ -54,6 +54,10 @@ export async function GET(req: NextRequest) {
       notes: row.notes,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      hasBeenRescheduled: row.has_been_rescheduled || false,
+      hasBeenCancelled: row.has_been_cancelled || false,
+      rescheduleCount: row.reschedule_count || 0,
+      cancelCount: row.cancel_count || 0,
     }));
 
     const response = NextResponse.json({

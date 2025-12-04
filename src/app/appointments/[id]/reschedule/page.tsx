@@ -15,6 +15,8 @@ export default function RescheduleAppointmentPage() {
   const { user, loading: authLoading } = useAuth(true);
   const [appointment, setAppointment] = useState<any>(null);
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<AvailableSlot[]>([]);
+  const [allSlots, setAllSlots] = useState<AvailableSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +54,11 @@ export default function RescheduleAppointmentPage() {
       if (response.data.success) {
         const apt = response.data.data.appointment;
         setAppointment(apt);
+        
+        // Check if appointment has already been rescheduled
+        if (apt.hasBeenRescheduled || apt.rescheduleCount > 0) {
+          setError('This appointment has already been rescheduled. You can only reschedule an appointment once.');
+        }
         
         // Normalize date to YYYY-MM-DD format
         const appointmentDate = apt.appointmentDate;
@@ -104,15 +111,37 @@ export default function RescheduleAppointmentPage() {
 
       if (response.data.success) {
         const slots = response.data.data.slots || [];
+        const booked = response.data.data.bookedSlots || [];
+        const all = response.data.data.allSlots || [];
+        
+        console.log('Available slots:', slots.length, slots);
+        console.log('Booked slots:', booked.length, booked);
+        console.log('All slots:', all.length, all);
+        
         // Ensure slots are strings (API returns array of time strings)
         const slotStrings = slots.map((slot: any) => {
           if (typeof slot === 'string') return slot;
           if (slot && typeof slot === 'object' && slot.time) return slot.time;
           return String(slot);
         });
-        console.log('Available slots:', slotStrings.length, slotStrings);
+        
+        const bookedStrings = booked.map((slot: any) => {
+          if (typeof slot === 'string') return slot;
+          if (slot && typeof slot === 'object' && slot.time) return slot.time;
+          return String(slot);
+        });
+        
+        const allStrings = all.map((slot: any) => {
+          if (typeof slot === 'string') return slot;
+          if (slot && typeof slot === 'object' && slot.time) return slot.time;
+          return String(slot);
+        });
+        
         setAvailableSlots(slotStrings);
-        if (slotStrings.length === 0) {
+        setBookedSlots(bookedStrings);
+        setAllSlots(allStrings);
+        
+        if (slotStrings.length === 0 && allStrings.length === 0) {
           setError(response.data.data.message || 'No available slots for this date. Please select another date.');
         } else {
           setError(null); // Clear error if slots are found
@@ -120,6 +149,8 @@ export default function RescheduleAppointmentPage() {
       } else {
         setError(response.data.error || 'Failed to load available slots');
         setAvailableSlots([]);
+        setBookedSlots([]);
+        setAllSlots([]);
       }
     } catch (err: any) {
       console.error('Error fetching slots:', err);
@@ -187,6 +218,8 @@ export default function RescheduleAppointmentPage() {
     );
   }
 
+  const canReschedule = !appointment.hasBeenRescheduled && (appointment.rescheduleCount || 0) === 0;
+
   const today = new Date().toISOString().split('T')[0];
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 30);
@@ -212,6 +245,13 @@ export default function RescheduleAppointmentPage() {
             {error}
           </div>
         )}
+        
+        {!canReschedule && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+            <p className="font-medium mb-1">Rescheduling Not Allowed</p>
+            <p className="text-sm">This appointment has already been rescheduled. You can only reschedule an appointment once.</p>
+          </div>
+        )}
 
         <div>
           <label htmlFor="appointmentDate" className="block text-sm font-medium text-secondary-700 mb-2">
@@ -231,7 +271,8 @@ export default function RescheduleAppointmentPage() {
             }}
             min={today}
             max={maxDateStr}
-            className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            disabled={!canReschedule}
+            className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             required
           />
         </div>
@@ -249,7 +290,7 @@ export default function RescheduleAppointmentPage() {
                 </svg>
                 Loading available slots...
               </div>
-            ) : availableSlots.length === 0 ? (
+            ) : allSlots.length === 0 ? (
               <div className="text-secondary-600 py-4 bg-yellow-50 border border-yellow-200 rounded-lg px-4">
                 <p className="font-medium text-yellow-800 mb-1">No available slots</p>
                 <p className="text-sm text-yellow-700">
@@ -258,21 +299,45 @@ export default function RescheduleAppointmentPage() {
               </div>
             ) : (
               <>
-                <p className="text-sm text-secondary-600 mb-3">
-                  Select a time slot ({availableSlots.length} available)
-                </p>
+                <div className="flex items-center gap-4 mb-3">
+                  <p className="text-sm text-secondary-600">
+                    Select a time slot ({availableSlots.length} available)
+                  </p>
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-green-500 rounded"></div>
+                      <span className="text-secondary-600">Available</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-red-500 rounded"></div>
+                      <span className="text-secondary-600">Booked</span>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
-                  {availableSlots.map((slot) => {
+                  {allSlots.map((slot) => {
                     const slotTime = typeof slot === 'string' ? slot : (slot as any).time || String(slot);
+                    const isBooked = bookedSlots.includes(slotTime);
+                    const isAvailable = availableSlots.includes(slotTime);
+                    
                     return (
                       <button
                         key={slotTime}
                         type="button"
-                        onClick={() => setFormData({ ...formData, appointmentTime: slotTime })}
+                        onClick={() => {
+                          if (!isBooked && isAvailable && canReschedule) {
+                            setFormData({ ...formData, appointmentTime: slotTime });
+                          }
+                        }}
+                        disabled={isBooked || !canReschedule}
                         className={`px-4 py-2 rounded-lg border transition-colors text-sm font-medium ${
-                          formData.appointmentTime === slotTime
+                          !canReschedule
+                            ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed opacity-75'
+                            : isBooked
+                            ? 'bg-red-100 text-red-700 border-red-300 cursor-not-allowed opacity-75'
+                            : formData.appointmentTime === slotTime
                             ? 'bg-primary-600 text-white border-primary-600 shadow-md'
-                            : 'bg-white text-secondary-700 border-secondary-300 hover:border-primary-500 hover:bg-primary-50'
+                            : 'bg-green-50 text-secondary-700 border-green-300 hover:border-primary-500 hover:bg-primary-50'
                         }`}
                       >
                         {slotTime}
@@ -294,7 +359,7 @@ export default function RescheduleAppointmentPage() {
           </Link>
           <button
             type="submit"
-            disabled={submitting || !formData.appointmentDate || !formData.appointmentTime}
+            disabled={submitting || !canReschedule || !formData.appointmentDate || !formData.appointmentTime}
             className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Rescheduling...' : 'Reschedule Appointment'}

@@ -12,7 +12,9 @@ export function getPool(): Pool {
       password: process.env.DB_PASSWORD,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 10000, // Increased from 2000 to 10000 (10 seconds)
+      statement_timeout: 30000, // 30 seconds for query execution
+      query_timeout: 30000, // 30 seconds for query timeout
     };
 
     // Warn if using default values (except for host/port/database which have safe defaults)
@@ -71,6 +73,12 @@ export async function query(text: string, params?: any[]) {
       throw new Error(
         `Database table "${tableName}" does not exist. ` +
         `Run: npm run db:migrate or npm run db:create-forms-table (for forms table)`
+      );
+    }
+    if (error?.message?.includes('timeout') || error?.message?.includes('Connection terminated')) {
+      throw new Error(
+        'Database connection timeout. The database may be slow or unavailable. ' +
+        'Please try again later or check your database connection settings.'
       );
     }
     

@@ -45,6 +45,10 @@ export async function GET(
       notes: row.notes,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      hasBeenRescheduled: row.has_been_rescheduled || false,
+      hasBeenCancelled: row.has_been_cancelled || false,
+      rescheduleCount: row.reschedule_count || 0,
+      cancelCount: row.cancel_count || 0,
     };
 
     const response = NextResponse.json({
@@ -81,7 +85,7 @@ export async function DELETE(
 
     // Check if appointment exists and belongs to user
     const checkResult = await query(
-      'SELECT id, status FROM appointments WHERE id = $1 AND user_id = $2',
+      'SELECT id, status, has_been_cancelled, cancel_count FROM appointments WHERE id = $1 AND user_id = $2',
       [appointmentId, user.id]
     );
 
@@ -89,10 +93,23 @@ export async function DELETE(
       throw new NotFoundError('Appointment not found');
     }
 
+    const appointment = checkResult.rows[0];
+
+    // Check if appointment has already been cancelled before
+    if (appointment.has_been_cancelled || appointment.cancel_count > 0) {
+      return NextResponse.json(
+        { success: false, error: 'This appointment has already been cancelled. You can only cancel an appointment once.' },
+        { status: 400 }
+      );
+    }
+
     // Soft delete - mark as cancelled
     await query(
       `UPDATE appointments 
-       SET status = 'cancelled', notes = COALESCE(notes || E'\\nCancellation reason: ' || $1, $1)
+       SET status = 'cancelled', 
+           has_been_cancelled = TRUE,
+           cancel_count = cancel_count + 1,
+           notes = COALESCE(notes || E'\\nCancellation reason: ' || $1, $1)
        WHERE id = $2`,
       [reason, appointmentId]
     );

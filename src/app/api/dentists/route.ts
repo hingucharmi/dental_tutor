@@ -12,16 +12,24 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const specialization = searchParams.get('specialization');
 
+    // Optimized query using subquery for reviews aggregation
     let queryStr = `
       SELECT d.*, 
        u.first_name,
        u.last_name,
        CONCAT(u.first_name, ' ', u.last_name) as name,
-       AVG(r.rating) as average_rating,
-       COUNT(r.id) as review_count
+       COALESCE(review_stats.average_rating, 0) as average_rating,
+       COALESCE(review_stats.review_count, 0) as review_count
        FROM dentists d
        LEFT JOIN users u ON d.user_id = u.id
-       LEFT JOIN reviews r ON d.id = r.dentist_id AND r.status = 'approved'
+       LEFT JOIN (
+         SELECT dentist_id,
+                AVG(rating) as average_rating,
+                COUNT(id) as review_count
+         FROM reviews
+         WHERE status = 'approved'
+         GROUP BY dentist_id
+       ) review_stats ON d.id = review_stats.dentist_id
     `;
     const params: any[] = [];
 
@@ -30,7 +38,7 @@ export async function GET(req: NextRequest) {
       params.push(specialization);
     }
 
-    queryStr += ' GROUP BY d.id, u.first_name, u.last_name ORDER BY u.first_name ASC, u.last_name ASC';
+    queryStr += ' ORDER BY u.first_name ASC, u.last_name ASC';
 
     const result = await query(queryStr, params);
 
