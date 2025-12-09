@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/middleware/auth';
 import { logger } from '@/lib/utils/logger';
 import { addCorsHeaders } from '@/lib/middleware/cors';
 import { NotFoundError } from '@/lib/utils/errors';
+import { notifyRecurringAppointmentUpdated, notifyRecurringAppointmentDeleted } from '@/lib/services/notifications';
 
 const updateSchema = z.object({
   status: z.enum(['active', 'paused', 'cancelled']).optional(),
@@ -22,15 +23,25 @@ export async function PUT(
 ) {
   try {
     const user = requireAuth(req);
+    
+    // Only doctors/admin/staff can update recurring appointments
+    const isStaff = user.role === 'admin' || user.role === 'staff' || user.role === 'dentist';
+    if (!isStaff) {
+      return NextResponse.json(
+        { success: false, error: 'Only doctors can modify recurring appointments' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const recurringId = parseInt(id);
     const body = await req.json();
     const data = updateSchema.parse(body);
 
-    // Verify ownership
+    // Verify the recurring appointment exists
     const checkResult = await query(
-      'SELECT id FROM recurring_appointments WHERE id = $1 AND user_id = $2',
-      [recurringId, user.id]
+      'SELECT id FROM recurring_appointments WHERE id = $1',
+      [recurringId]
     );
 
     if (checkResult.rows.length === 0) {
@@ -72,6 +83,29 @@ export async function PUT(
 
     logger.info('Recurring appointment updated', { id: recurringId, userId: user.id });
 
+    // Create notification for the patient
+    try {
+      const updatedAppointment = result.rows[0];
+      
+      // Get service name if service_id exists
+      let serviceName = null;
+      if (updatedAppointment.service_id) {
+        const serviceResult = await query('SELECT name FROM services WHERE id = $1', [updatedAppointment.service_id]);
+        if (serviceResult.rows.length > 0) {
+          serviceName = serviceResult.rows[0].name;
+        }
+      }
+
+      await notifyRecurringAppointmentUpdated(updatedAppointment.user_id, {
+        serviceName,
+        recurrencePattern: updatedAppointment.recurrence_pattern,
+        status: data.status,
+      });
+    } catch (notifError) {
+      logger.error('Failed to create notification', notifError as Error);
+      // Don't fail the request if notification fails
+    }
+
     const response = NextResponse.json({
       success: true,
       data: { recurringAppointment: result.rows[0] },
@@ -106,23 +140,35 @@ export async function DELETE(
 ) {
   try {
     const user = requireAuth(req);
+    
+    // Only doctors/admin/staff can delete recurring appointments
+    const isStaff = user.role === 'admin' || user.role === 'staff' || user.role === 'dentist';
+    if (!isStaff) {
+      return NextResponse.json(
+        { success: false, error: 'Only doctors can delete recurring appointments' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const recurringId = parseInt(id);
 
-    // Verify ownership before deleting
-    const checkResult = await query(
-      'SELECT id FROM recurring_appointments WHERE id = $1 AND user_id = $2',
-      [recurringId, user.id]
+    // Get appointment details before deletion for notification
+    const appointmentResult = await query(
+      'SELECT ra.*, s.name as service_name FROM recurring_appointments ra LEFT JOIN services s ON ra.service_id = s.id WHERE ra.id = $1',
+      [recurringId]
     );
 
-    if (checkResult.rows.length === 0) {
+    if (appointmentResult.rows.length === 0) {
       throw new NotFoundError('Recurring appointment not found');
     }
 
+    const appointmentToDelete = appointmentResult.rows[0];
+
     // Actually delete the record from database
     const deleteResult = await query(
-      'DELETE FROM recurring_appointments WHERE id = $1 AND user_id = $2 RETURNING id',
-      [recurringId, user.id]
+      'DELETE FROM recurring_appointments WHERE id = $1 RETURNING id',
+      [recurringId]
     );
 
     if (deleteResult.rows.length === 0) {
@@ -130,6 +176,17 @@ export async function DELETE(
     }
 
     logger.info('Recurring appointment deleted', { id: recurringId, userId: user.id });
+
+    // Create notification for the patient
+    try {
+      await notifyRecurringAppointmentDeleted(appointmentToDelete.user_id, {
+        serviceName: appointmentToDelete.service_name,
+        recurrencePattern: appointmentToDelete.recurrence_pattern,
+      });
+    } catch (notifError) {
+      logger.error('Failed to create notification', notifError as Error);
+      // Don't fail the request if notification fails
+    }
 
     const response = NextResponse.json({
       success: true,

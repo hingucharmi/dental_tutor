@@ -1,9 +1,11 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user, loading } = useAuth(true);
 
   if (loading) {
@@ -69,10 +71,10 @@ export default function DashboardPage() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">
-            {isAdmin ? 'Manage Appointments' : isDentist ? 'My Schedule' : 'My Appointments'}
+            {isAdmin ? t('header.manageAppointments') : isDentist ? t('header.mySchedule') : t('header.myAppointments')}
           </h2>
           <p className="text-secondary-600 relative z-10">
-            {isAdmin ? 'View and manage all patient appointments' : isDentist ? 'View your scheduled appointments' : 'View and manage your appointments'}
+            {isAdmin ? t('appointments.subtitleAdmin') : isDentist ? t('appointments.subtitleDentist') : t('appointments.subtitlePatient')}
           </p>
         </Link>
 
@@ -88,8 +90,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Chat Assistant</h2>
-              <p className="text-secondary-600 relative z-10">Get help from our AI assistant</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.chatAssistant')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('home.aiAssistantDesc')}</p>
             </Link>
 
             <Link
@@ -102,8 +104,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Waitlist</h2>
-              <p className="text-secondary-600 relative z-10">Join waitlist for preferred times</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.waitlist')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('common.waitlistDesc', 'Join waitlist for preferred times')}</p>
             </Link>
 
             <Link
@@ -116,8 +118,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Prescriptions</h2>
-              <p className="text-secondary-600 relative z-10">View prescriptions and request refills</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.prescriptions')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('common.prescriptionsDesc', 'View prescriptions and request refills')}</p>
             </Link>
 
             <Link
@@ -130,8 +132,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Insurance</h2>
-              <p className="text-secondary-600 relative z-10">Manage insurance information</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.insurance')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('common.insuranceDesc', 'Manage insurance information')}</p>
             </Link>
 
             <Link
@@ -144,8 +146,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Payments</h2>
-              <p className="text-secondary-600 relative z-10">View payment history</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.payments')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('payments.paymentHistory')}</p>
             </Link>
 
             <Link
@@ -158,8 +160,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Treatment Compliance</h2>
-              <p className="text-secondary-600 relative z-10">Track your treatment compliance and follow-ups</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.compliance')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('common.complianceDesc', 'Track your treatment compliance and follow-ups')}</p>
             </Link>
           </>
         )}
@@ -175,8 +177,8 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Chat Assistant</h2>
-            <p className="text-secondary-600 relative z-10">Get help from our AI assistant</p>
+            <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.chatAssistant')}</h2>
+            <p className="text-secondary-600 relative z-10">{t('home.aiAssistantDesc')}</p>
           </Link>
         )}
 
@@ -192,8 +194,8 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Support Center</h2>
-              <p className="text-secondary-600 relative z-10">Manage support tickets and inquiries</p>
+              <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('header.supportCenter')}</h2>
+              <p className="text-secondary-600 relative z-10">{t('common.supportDesc', 'Manage support tickets and inquiries')}</p>
             </Link>
           </>
         )}
@@ -208,8 +210,8 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Profile</h2>
-          <p className="text-secondary-600 relative z-10">Manage your account settings</p>
+          <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.profile')}</h2>
+          <p className="text-secondary-600 relative z-10">{t('common.profileDesc', 'Manage your account settings')}</p>
         </Link>
 
         <Link
@@ -222,8 +224,8 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Notifications</h2>
-          <p className="text-secondary-600 relative z-10">View your notifications</p>
+          <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.notifications')}</h2>
+          <p className="text-secondary-600 relative z-10">{t('notifications.viewNotifications', 'View your notifications')}</p>
         </Link>
 
         <Link
@@ -237,8 +239,8 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">Office Info</h2>
-          <p className="text-secondary-600 relative z-10">Location, hours</p>
+          <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.officeInfo', 'Office Info')}</h2>
+          <p className="text-secondary-600 relative z-10">{t('common.officeInfoDesc', 'Location, hours')}</p>
         </Link>
       </div>
     </div>

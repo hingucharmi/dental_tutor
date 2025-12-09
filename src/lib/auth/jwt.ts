@@ -7,7 +7,7 @@ export function generateToken(user: AuthUser): string {
     throw new Error('JWT_SECRET is not configured');
   }
 
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  const expiresIn = process.env.JWT_EXPIRES_IN || '1minute';
 
   return jwt.sign(
     {

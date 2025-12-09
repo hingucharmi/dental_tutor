@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import apiClient from '@/lib/utils/apiClient';
 
@@ -15,6 +16,7 @@ interface Dentist {
 }
 
 export default function DentistsPage() {
+  const { t, i18n } = useTranslation();
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpecialization, setSelectedSpecialization] = useState<string>('all');
@@ -44,10 +46,15 @@ export default function DentistsPage() {
 
   const specializations = ['all', 'general', 'orthodontics', 'oral_surgery', 'pediatric', 'cosmetic'];
 
+  const getSpecializationLabel = (spec: string) => {
+    if (spec === 'all') return t('common.all');
+    return t(`dentists.specialization.${spec}`, spec.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-secondary-600">Loading dentists...</div>
+        <div className="text-secondary-600">{t('common.loading')}</div>
       </div>
     );
   }
@@ -56,10 +63,10 @@ export default function DentistsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="heading-responsive font-bold text-primary-700 mb-4">
-          Our Dentists
+          {t('dentists.title')}
         </h1>
         <p className="text-secondary-600">
-          Meet our experienced dental professionals
+          {t('dentists.subtitle')}
         </p>
       </div>
 
@@ -74,7 +81,7 @@ export default function DentistsPage() {
                 : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
             }`}
           >
-            {spec === 'all' ? 'All' : spec.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            {getSpecializationLabel(spec)}
           </button>
         ))}
       </div>
@@ -98,7 +105,7 @@ export default function DentistsPage() {
             <div className="flex items-center gap-2">
               <span className="text-yellow-500">★</span>
               <span className="text-sm font-medium">
-                {dentist.averageRating.toFixed(1)} ({dentist.reviewCount} reviews)
+                {dentist.averageRating.toFixed(1)} ({dentist.reviewCount} {t('dentists.reviews', 'reviews')})
               </span>
             </div>
           </Link>
@@ -107,7 +114,7 @@ export default function DentistsPage() {
 
       {dentists.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg border border-secondary-200">
-          <p className="text-secondary-600">No dentists found</p>
+          <p className="text-secondary-600">{t('dentists.noDentists')}</p>
         </div>
       )}
     </div>

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/hooks/useAuth';
 import apiClient from '@/lib/utils/apiClient';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user, loading: authLoading } = useAuth(true);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,7 +49,7 @@ export default function ProfilePage() {
         });
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load profile');
+      setError(err.response?.data?.error || t('profile.loadError', 'Failed to load profile'));
     } finally {
       setLoading(false);
     }
@@ -83,7 +85,7 @@ export default function ProfilePage() {
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update profile');
+      setError(err.response?.data?.error || t('profile.updateError'));
     } finally {
       setSaving(false);
     }
@@ -109,7 +111,7 @@ export default function ProfilePage() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-secondary-600">Loading profile...</div>
+        <div className="text-secondary-600">{t('common.loading')}</div>
       </div>
     );
   }
@@ -122,10 +124,10 @@ export default function ProfilePage() {
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="heading-responsive font-bold text-primary-700">
-          My Profile
+          {t('profile.title')}
         </h1>
         <p className="text-secondary-600 mt-2">
-          Manage your personal information and preferences
+          {t('profile.subtitle', 'Manage your personal information and preferences')}
         </p>
       </div>
 
@@ -138,14 +140,14 @@ export default function ProfilePage() {
 
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-            Profile updated successfully!
+            {t('profile.updateSuccess')}
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="firstName" className="block text-sm font-medium text-secondary-700 mb-2">
-              First Name *
+              {t('auth.firstName')} *
             </label>
             <input
               type="text"
@@ -159,7 +161,7 @@ export default function ProfilePage() {
 
           <div>
             <label htmlFor="lastName" className="block text-sm font-medium text-secondary-700 mb-2">
-              Last Name *
+              {t('auth.lastName')} *
             </label>
             <input
               type="text"
@@ -173,7 +175,7 @@ export default function ProfilePage() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-2">
-              Email
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -182,12 +184,12 @@ export default function ProfilePage() {
               disabled
               className="w-full px-4 py-2 border border-secondary-300 rounded-lg bg-secondary-50 text-secondary-500"
             />
-            <p className="text-xs text-secondary-500 mt-1">Email cannot be changed</p>
+            <p className="text-xs text-secondary-500 mt-1">{t('profile.emailCannotChange', 'Email cannot be changed')}</p>
           </div>
 
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-secondary-700 mb-2">
-              Phone
+              {t('auth.phone')}
             </label>
             <input
               type="tel"
@@ -200,7 +202,7 @@ export default function ProfilePage() {
 
           <div>
             <label htmlFor="dateOfBirth" className="block text-sm font-medium text-secondary-700 mb-2">
-              Date of Birth
+              {t('profile.dateOfBirth', 'Date of Birth')}
             </label>
             <input
               type="date"
@@ -213,11 +215,11 @@ export default function ProfilePage() {
         </div>
 
         <div className="border-t border-secondary-200 pt-6">
-          <h3 className="text-lg font-semibold text-primary-700 mb-4">Emergency Contact</h3>
+          <h3 className="text-lg font-semibold text-primary-700 mb-4">{t('profile.emergencyContact', 'Emergency Contact')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="emergencyContactName" className="block text-sm font-medium text-secondary-700 mb-2">
-                Contact Name
+                {t('profile.contactName', 'Contact Name')}
               </label>
               <input
                 type="text"
@@ -230,7 +232,7 @@ export default function ProfilePage() {
 
             <div>
               <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-secondary-700 mb-2">
-                Contact Phone
+                {t('profile.contactPhone', 'Contact Phone')}
               </label>
               <input
                 type="tel"
@@ -244,14 +246,14 @@ export default function ProfilePage() {
         </div>
 
         <div className="border-t border-secondary-200 pt-6">
-          <h3 className="text-lg font-semibold text-primary-700 mb-4">Allergies</h3>
+          <h3 className="text-lg font-semibold text-primary-700 mb-4">{t('profile.allergies', 'Allergies')}</h3>
           <div className="flex gap-2 mb-4">
             <input
               type="text"
               value={formData.allergyInput}
               onChange={(e) => setFormData({ ...formData, allergyInput: e.target.value })}
               onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAllergy())}
-              placeholder="Add an allergy"
+              placeholder={t('profile.addAllergy', 'Add an allergy')}
               className="flex-1 px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <button
@@ -259,7 +261,7 @@ export default function ProfilePage() {
               onClick={addAllergy}
               className="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors"
             >
-              Add
+              {t('common.add', 'Add')}
             </button>
           </div>
           {formData.allergies.length > 0 && (
@@ -289,7 +291,7 @@ export default function ProfilePage() {
             disabled={saving}
             className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? t('profile.saving', 'Saving...') : t('profile.saveChanges', 'Save Changes')}
           </button>
         </div>
       </form>

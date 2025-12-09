@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 import axios from 'axios';
@@ -22,6 +23,7 @@ interface Appointment {
 }
 
 export default function AppointmentsPage() {
+  const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuth(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,15 +36,15 @@ export default function AppointmentsPage() {
   const isPatient = user?.role === 'patient' || !user?.role;
 
   const getPageTitle = () => {
-    if (isAdmin) return 'Manage Appointments';
-    if (isDentist) return 'My Schedule';
-    return 'My Appointments';
+    if (isAdmin) return t('appointments.manageTitle');
+    if (isDentist) return t('appointments.scheduleTitle');
+    return t('appointments.myAppointmentsTitle');
   };
 
   const getPageSubtitle = () => {
-    if (isAdmin) return 'View and manage all patient appointments';
-    if (isDentist) return 'View your scheduled appointments and patient visits';
-    return 'Manage your dental appointments';
+    if (isAdmin) return t('appointments.subtitleAdmin');
+    if (isDentist) return t('appointments.subtitleDentist');
+    return t('appointments.subtitlePatient');
   };
 
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function AppointmentsPage() {
   };
 
   const handleCancel = async (appointmentId: number) => {
-    if (!confirm('Are you sure you want to cancel this appointment?')) {
+    if (!confirm(t('appointments.confirmCancel', 'Are you sure you want to cancel this appointment?'))) {
       return;
     }
 
@@ -135,9 +137,11 @@ export default function AppointmentsPage() {
       });
 
       // Refresh appointments
+      setSuccessMessage(t('appointments.cancelSuccess'));
       fetchAppointments();
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to cancel appointment');
+      setError(err.response?.data?.error || t('appointments.cancelError'));
     }
   };
 
@@ -162,7 +166,7 @@ export default function AppointmentsPage() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-secondary-600">Loading appointments...</div>
+        <div className="text-secondary-600">{t('common.loading')}</div>
       </div>
     );
   }
@@ -183,12 +187,20 @@ export default function AppointmentsPage() {
           </p>
         </div>
         {isPatient && (
-          <Link
-            href="/appointments/book"
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            Book New Appointment
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/appointments/book"
+              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              {t('appointments.bookNew')}
+            </Link>
+            <Link
+              href="/recurring-appointments"
+              className="px-6 py-3 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors"
+            >
+              {t('common.recurringAppointments', 'Recurring Appointments')}
+            </Link>
+          </div>
         )}
       </div>
 
@@ -202,7 +214,7 @@ export default function AppointmentsPage() {
               : 'text-secondary-600 hover:text-primary-600'
           }`}
         >
-          Upcoming
+          {t('appointments.upcoming')}
         </button>
         <button
           onClick={() => setActiveTab('history')}
@@ -212,7 +224,7 @@ export default function AppointmentsPage() {
               : 'text-secondary-600 hover:text-primary-600'
           }`}
         >
-          History
+          {t('appointments.history')}
         </button>
       </div>
 
@@ -248,15 +260,15 @@ export default function AppointmentsPage() {
         <div className="text-center py-12 bg-white rounded-lg border border-secondary-200">
           <p className="text-secondary-600 mb-4">
             {activeTab === 'upcoming' 
-              ? 'No upcoming appointments scheduled.'
-              : 'No appointment history found.'}
+              ? t('appointments.noUpcoming')
+              : t('appointments.noHistory')}
           </p>
           {activeTab === 'upcoming' && (
             <Link
               href="/appointments/book"
               className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
-              Book Your First Appointment
+              {t('appointments.bookFirst', 'Book Your First Appointment')}
             </Link>
           )}
         </div>
@@ -312,18 +324,18 @@ export default function AppointmentsPage() {
                     onClick={(e) => {
                       if (appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)) {
                         e.preventDefault();
-                        alert('This appointment has already been rescheduled. You can only reschedule an appointment once.');
+                        alert(t('appointments.alreadyRescheduled', 'This appointment has already been rescheduled. You can only reschedule an appointment once.'));
                       }
                     }}
                   >
                     {appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)
-                      ? 'Already Rescheduled'
-                      : 'Reschedule'}
+                      ? t('appointments.alreadyRescheduled', 'Already Rescheduled')
+                      : t('appointments.reschedule')}
                   </Link>
                   <button
                     onClick={() => {
                       if (appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)) {
-                        alert('This appointment has already been cancelled. You can only cancel an appointment once.');
+                        alert(t('appointments.alreadyCancelled', 'This appointment has already been cancelled. You can only cancel an appointment once.'));
                         return;
                       }
                       handleCancel(appointment.id);
@@ -336,8 +348,8 @@ export default function AppointmentsPage() {
                     }`}
                   >
                     {appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)
-                      ? 'Already Cancelled'
-                      : 'Cancel'}
+                      ? t('appointments.alreadyCancelled', 'Already Cancelled')
+                      : t('appointments.cancel')}
                   </button>
                 </div>
               )}

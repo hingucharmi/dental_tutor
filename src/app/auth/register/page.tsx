@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -23,6 +24,7 @@ const registerSchema = z.object({
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,10 +91,10 @@ export default function RegisterPage() {
         // Redirect to dashboard
         router.push('/dashboard');
       } else {
-        setError(response.data.error || 'Registration failed');
+        setError(response.data.error || t('auth.registerError'));
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'An error occurred during registration');
+      setError(err.response?.data?.error || t('auth.registerError'));
     } finally {
       setIsLoading(false);
     }
@@ -104,17 +106,17 @@ export default function RegisterPage() {
         {/* Header Section */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-4">
-            <h1 className="text-3xl font-bold text-primary-600">Dental Tutor</h1>
+            <h1 className="text-3xl font-bold text-primary-600">{t('header.title')}</h1>
           </Link>
-          <h2 className="text-2xl font-bold text-primary-700 mb-2">Create Your Account</h2>
-          <p className="text-secondary-600">Join thousands of patients managing their dental health</p>
+          <h2 className="text-2xl font-bold text-primary-700 mb-2">{t('auth.createAccount', 'Create Your Account')}</h2>
+          <p className="text-secondary-600">{t('auth.joinThousands', 'Join thousands of patients managing their dental health')}</p>
         </div>
 
         {/* Registration Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-secondary-200 overflow-hidden">
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
-            <h3 className="text-xl font-semibold text-white">Get Started</h3>
-            <p className="text-primary-100 text-sm mt-1">Create your account in seconds</p>
+            <h3 className="text-xl font-semibold text-white">{t('auth.getStarted', 'Get Started')}</h3>
+            <p className="text-primary-100 text-sm mt-1">{t('auth.createAccountSeconds', 'Create your account in seconds')}</p>
           </div>
 
           <div className="p-6 sm:p-8">
@@ -133,7 +135,7 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-semibold text-secondary-700 mb-2">
-                    First Name
+                    {t('auth.firstName')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -146,7 +148,7 @@ export default function RegisterPage() {
                       type="text"
                       id="firstName"
                       className="block w-full pl-10 pr-3 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                      placeholder="John"
+                      placeholder={t('auth.firstNamePlaceholder', 'John')}
                     />
                   </div>
                   {errors.firstName && (
@@ -161,7 +163,7 @@ export default function RegisterPage() {
 
                 <div>
                   <label htmlFor="lastName" className="block text-sm font-semibold text-secondary-700 mb-2">
-                    Last Name
+                    {t('auth.lastName')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -174,7 +176,7 @@ export default function RegisterPage() {
                       type="text"
                       id="lastName"
                       className="block w-full pl-10 pr-3 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                      placeholder="Doe"
+                      placeholder={t('auth.lastNamePlaceholder', 'Doe')}
                     />
                   </div>
                   {errors.lastName && (
@@ -190,7 +192,7 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-secondary-700 mb-2">
-                  Email Address
+                  {t('auth.email')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -203,7 +205,7 @@ export default function RegisterPage() {
                     type="email"
                     id="email"
                     className="block w-full pl-10 pr-3 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                    placeholder="your@email.com"
+                    placeholder={t('auth.emailPlaceholder')}
                   />
                 </div>
                 {errors.email && (
@@ -218,7 +220,7 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="phone" className="block text-sm font-semibold text-secondary-700 mb-2">
-                  Phone Number <span className="text-secondary-400 font-normal">(Optional)</span>
+                  {t('auth.phone')} <span className="text-secondary-400 font-normal">({t('common.optional', 'Optional')})</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -246,7 +248,7 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="password" className="block text-sm font-semibold text-secondary-700 mb-2">
-                  Password
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -259,7 +261,7 @@ export default function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     id="password"
                     className="block w-full pl-10 pr-10 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                    placeholder="Create a strong password"
+                    placeholder={t('auth.createStrongPassword', 'Create a strong password')}
                   />
                   <button
                     type="button"
@@ -281,7 +283,7 @@ export default function RegisterPage() {
                 {password && (
                   <div className="mt-2">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-secondary-600">Password strength:</span>
+                      <span className="text-xs text-secondary-600">{t('auth.passwordStrength', 'Password strength')}:</span>
                       <span className={`text-xs font-medium ${passwordStrength <= 2 ? 'text-red-600' : passwordStrength <= 3 ? 'text-yellow-600' : 'text-green-600'}`}>
                         {getPasswordStrengthText()}
                       </span>
@@ -303,12 +305,12 @@ export default function RegisterPage() {
                   </p>
                 )}
                 <div className="mt-2 text-xs text-secondary-500">
-                  <p className="mb-1">Password must contain:</p>
+                  <p className="mb-1">{t('auth.passwordMustContain', 'Password must contain')}:</p>
                   <ul className="list-disc list-inside space-y-0.5">
-                    <li className={password.length >= 8 ? 'text-green-600' : ''}>At least 8 characters</li>
-                    <li className={/[A-Z]/.test(password) ? 'text-green-600' : ''}>One uppercase letter</li>
-                    <li className={/[a-z]/.test(password) ? 'text-green-600' : ''}>One lowercase letter</li>
-                    <li className={/[0-9]/.test(password) ? 'text-green-600' : ''}>One number</li>
+                    <li className={password.length >= 8 ? 'text-green-600' : ''}>{t('auth.atLeast8Chars', 'At least 8 characters')}</li>
+                    <li className={/[A-Z]/.test(password) ? 'text-green-600' : ''}>{t('auth.oneUppercase', 'One uppercase letter')}</li>
+                    <li className={/[a-z]/.test(password) ? 'text-green-600' : ''}>{t('auth.oneLowercase', 'One lowercase letter')}</li>
+                    <li className={/[0-9]/.test(password) ? 'text-green-600' : ''}>{t('auth.oneNumber', 'One number')}</li>
                   </ul>
                 </div>
               </div>
@@ -325,13 +327,13 @@ export default function RegisterPage() {
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="terms" className="text-secondary-600">
-                    I agree to the{' '}
+                    {t('auth.agreeTo', 'I agree to the')}{' '}
                     <Link href="/terms" className="text-primary-600 hover:text-primary-700 font-medium">
-                      Terms of Service
+                      {t('footer.termsOfService')}
                     </Link>
-                    {' '}and{' '}
+                    {' '}{t('common.and', 'and')}{' '}
                     <Link href="/privacy" className="text-primary-600 hover:text-primary-700 font-medium">
-                      Privacy Policy
+                      {t('footer.privacyPolicy')}
                     </Link>
                   </label>
                 </div>
@@ -348,14 +350,14 @@ export default function RegisterPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating account...
+                    {t('auth.creatingAccount', 'Creating account...')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    Create Account
+                    {t('auth.createAccount', 'Create Account')}
                   </>
                 )}
               </button>
@@ -367,7 +369,7 @@ export default function RegisterPage() {
                   <div className="w-full border-t border-secondary-300"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-secondary-500">Already have an account?</span>
+                  <span className="px-2 bg-white text-secondary-500">{t('auth.alreadyHaveAccount')}</span>
                 </div>
               </div>
 
@@ -376,7 +378,7 @@ export default function RegisterPage() {
                   href="/auth/login"
                   className="w-full inline-flex justify-center items-center py-3 px-4 border-2 border-primary-600 rounded-lg shadow-sm text-base font-medium text-primary-600 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200"
                 >
-                  Sign in instead
+                  {t('auth.signInInstead', 'Sign in instead')}
                 </Link>
               </div>
             </div>
@@ -391,8 +393,8 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-secondary-700">Easy Booking</p>
-            <p className="text-xs text-secondary-500 mt-1">Schedule appointments online</p>
+            <p className="text-sm font-medium text-secondary-700">{t('auth.easyBooking')}</p>
+            <p className="text-xs text-secondary-500 mt-1">{t('auth.scheduleOnline', 'Schedule appointments online')}</p>
           </div>
           <div className="p-4 bg-white rounded-lg border border-secondary-200">
             <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -400,8 +402,8 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-secondary-700">Secure & Private</p>
-            <p className="text-xs text-secondary-500 mt-1">HIPAA compliant</p>
+            <p className="text-sm font-medium text-secondary-700">{t('home.securePrivate')}</p>
+            <p className="text-xs text-secondary-500 mt-1">{t('auth.hipaaCompliant', 'HIPAA compliant')}</p>
           </div>
           <div className="p-4 bg-white rounded-lg border border-secondary-200">
             <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -409,8 +411,8 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-secondary-700">AI Assistant</p>
-            <p className="text-xs text-secondary-500 mt-1">24/7 support</p>
+            <p className="text-sm font-medium text-secondary-700">{t('home.aiAssistant')}</p>
+            <p className="text-xs text-secondary-500 mt-1">{t('auth.support247', '24/7 support')}</p>
           </div>
         </div>
       </div>

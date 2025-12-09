@@ -8,6 +8,7 @@ import { addCorsHeaders } from '@/lib/middleware/cors';
 const messageSchema = z.object({
   message: z.string().min(1, 'Message is required'),
   conversationId: z.number().nullable().optional(),
+  language: z.string().optional().default('en'),
 });
 
 export async function OPTIONS(req: NextRequest) {
@@ -18,12 +19,13 @@ export async function POST(req: NextRequest) {
   try {
     const user = requireAuth(req);
     const body = await req.json();
-    const { message, conversationId } = messageSchema.parse(body);
+    const { message, conversationId, language } = messageSchema.parse(body);
 
     const { response, conversationId: convId } = await getChatResponse(
       message,
       conversationId || null,
-      user.id
+      user.id,
+      language || 'en'
     );
 
     const result = NextResponse.json({

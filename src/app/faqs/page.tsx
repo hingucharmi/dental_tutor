@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiClient from '@/lib/utils/apiClient';
 
 interface FAQ {
@@ -11,6 +12,7 @@ interface FAQ {
 }
 
 export default function FAQsPage() {
+  const { t, i18n } = useTranslation();
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,10 +59,15 @@ export default function FAQsPage() {
 
   const categories = ['all', 'general', 'appointments', 'insurance', 'payment', 'emergency'];
 
+  const getCategoryLabel = (category: string) => {
+    if (category === 'all') return t('common.all');
+    return t(`faqs.category.${category}`, category.charAt(0).toUpperCase() + category.slice(1));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-secondary-600">Loading FAQs...</div>
+        <div className="text-secondary-600">{t('common.loading')}</div>
       </div>
     );
   }
@@ -70,10 +77,10 @@ export default function FAQsPage() {
       {/* Header Section */}
       <div className="text-center">
         <h1 className="heading-responsive font-bold text-primary-700 mb-4">
-          Frequently Asked Questions
+          {t('faqs.title')}
         </h1>
         <p className="text-lg text-secondary-600">
-          Find answers to common questions about our services
+          {t('faqs.subtitle')}
         </p>
       </div>
 
@@ -90,7 +97,7 @@ export default function FAQsPage() {
           </svg>
           <input
             type="text"
-            placeholder="Search FAQs..."
+            placeholder={t('faqs.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -107,7 +114,7 @@ export default function FAQsPage() {
                   : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
               }`}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {getCategoryLabel(category)}
             </button>
           ))}
         </div>
@@ -117,7 +124,7 @@ export default function FAQsPage() {
       <div className="space-y-3">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="text-secondary-600">Loading FAQs...</div>
+            <div className="text-secondary-600">{t('common.loading')}</div>
           </div>
         ) : faqs.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-secondary-200">
@@ -129,8 +136,8 @@ export default function FAQsPage() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-secondary-600 text-lg">No FAQs found</p>
-            <p className="text-secondary-500 text-sm mt-2">Try adjusting your search or filter</p>
+            <p className="text-secondary-600 text-lg">{t('faqs.noFaqs')}</p>
+            <p className="text-secondary-500 text-sm mt-2">{t('faqs.tryAdjusting', 'Try adjusting your search or filter')}</p>
           </div>
         ) : (
             faqs.map((faq) => (

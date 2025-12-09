@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/hooks/useAuth';
 import apiClient from '@/lib/utils/apiClient';
 
@@ -22,6 +23,7 @@ interface Service {
 const TAX_RATE = 0.08; // 8% tax rate
 
 export default function PaymentsPage() {
+  const { t } = useTranslation();
   const { user, loading: authLoading } = useAuth(true);
   const [payments, setPayments] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -149,7 +151,7 @@ export default function PaymentsPage() {
     e.preventDefault();
     
     if (!selectedService || totalAmount <= 0) {
-      alert('Please select a service or appointment');
+      alert(t('payments.selectServiceOrAppointment', 'Please select a service or appointment'));
       return;
     }
 
@@ -174,7 +176,7 @@ export default function PaymentsPage() {
 
       const response = await apiClient.post('/api/payments/process', payload);
       if (response.data.success) {
-        alert('Payment processed successfully!');
+        alert(t('payments.paymentSuccess', 'Payment processed successfully!'));
         setShowPaymentForm(false);
         setFormData({
           appointmentId: '',
@@ -192,7 +194,7 @@ export default function PaymentsPage() {
         setActiveTab('transactions');
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Failed to process payment';
+      const errorMessage = error.response?.data?.error || t('payments.paymentError', 'Failed to process payment');
       alert(errorMessage);
       
       // If payment already exists, refresh appointments to update the list
@@ -214,7 +216,7 @@ export default function PaymentsPage() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-secondary-600">Loading payment history...</div>
+        <div className="text-secondary-600">{t('common.loading')}</div>
       </div>
     );
   }
@@ -245,10 +247,10 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-responsive font-bold text-primary-700">
-            Payments
+            {t('payments.title')}
           </h1>
           <p className="text-secondary-600 mt-2">
-            Process payments and view transaction history
+            {t('payments.subtitle', 'Process payments and view transaction history')}
           </p>
         </div>
         <button
@@ -258,7 +260,7 @@ export default function PaymentsPage() {
           }}
           className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
-          Process Payment
+          {t('payments.processPayment', 'Process Payment')}
         </button>
       </div>
 
@@ -272,7 +274,7 @@ export default function PaymentsPage() {
                 : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
             }`}
           >
-            Process Payment
+            {t('payments.processPayment', 'Process Payment')}
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -282,7 +284,7 @@ export default function PaymentsPage() {
                 : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
             }`}
           >
-            Payment History
+            {t('payments.paymentHistory')}
           </button>
           <button
             onClick={() => setActiveTab('transactions')}
@@ -292,7 +294,7 @@ export default function PaymentsPage() {
                 : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
             }`}
           >
-            Transactions
+            {t('payments.transactions', 'Transactions')}
           </button>
         </nav>
       </div>
@@ -302,18 +304,18 @@ export default function PaymentsPage() {
           {/* Payment Form */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6 border border-secondary-200">
             <h2 className="text-xl font-semibold text-primary-700 mb-6">
-              Process Payment
+              {t('payments.processPayment', 'Process Payment')}
             </h2>
             <form onSubmit={handlePaymentSubmit} className="space-y-6">
               {/* Appointment Selection */}
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Select Appointment (Optional)
+                  {t('payments.selectAppointment')}
                 </label>
                 {appointments.length === 0 ? (
                   <div className="w-full px-4 py-3 border border-secondary-200 rounded-lg bg-secondary-50">
                     <p className="text-sm text-secondary-600">
-                      No appointments available for payment. All appointments may already have payments.
+                      {t('payments.noAppointmentsAvailable')}
                     </p>
                   </div>
                 ) : (
@@ -323,16 +325,16 @@ export default function PaymentsPage() {
                       onChange={(e) => handleAppointmentChange(e.target.value)}
                       className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
-                      <option value="">Select an appointment...</option>
+                      <option value="">{t('payments.selectAnAppointment')}</option>
                       {appointments.map((apt) => (
                         <option key={apt.id} value={apt.id}>
-                          {apt.serviceName} - {new Date(apt.appointmentDate).toLocaleDateString()} at {apt.appointmentTime}
+                          {apt.serviceName} - {new Date(apt.appointmentDate).toLocaleDateString()} {t('common.at', 'at')} {apt.appointmentTime}
                         </option>
                       ))}
                     </select>
                     {selectedAppointment && (
                       <p className="mt-2 text-sm text-secondary-600">
-                        Appointment: {selectedAppointment.serviceName} on {new Date(selectedAppointment.appointmentDate).toLocaleDateString()} at {selectedAppointment.appointmentTime}
+                        {t('payments.appointment')}: {selectedAppointment.serviceName} {t('common.on', 'on')} {new Date(selectedAppointment.appointmentDate).toLocaleDateString()} {t('common.at', 'at')} {selectedAppointment.appointmentTime}
                       </p>
                     )}
                   </>
@@ -343,7 +345,7 @@ export default function PaymentsPage() {
               {!formData.appointmentId && (
                 <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-2">
-                    Select Service *
+                    {t('payments.selectService')} *
                   </label>
                   <select
                     required={!formData.appointmentId}
@@ -351,7 +353,7 @@ export default function PaymentsPage() {
                     onChange={(e) => handleServiceChange(e.target.value)}
                     className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    <option value="">Select a service...</option>
+                    <option value="">{t('payments.selectAService', 'Select a service...')}</option>
                     {services.map((service) => (
                       <option key={service.id} value={service.id}>
                         {service.name} {service.basePrice ? `- $${service.basePrice}` : ''}
@@ -364,7 +366,7 @@ export default function PaymentsPage() {
               {/* Payment Method */}
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Payment Method *
+                  {t('payments.paymentMethod')} *
                 </label>
                 <select
                   required
@@ -372,11 +374,11 @@ export default function PaymentsPage() {
                   onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                   className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <option value="stripe">Stripe (Credit/Debit Card)</option>
-                  <option value="paypal">PayPal</option>
-                  <option value="cash">Cash</option>
-                  <option value="check">Check</option>
-                  <option value="insurance">Insurance</option>
+                  <option value="stripe">{t('payments.stripe', 'Stripe (Credit/Debit Card)')}</option>
+                  <option value="paypal">{t('payments.paypal', 'PayPal')}</option>
+                  <option value="cash">{t('payments.cash', 'Cash')}</option>
+                  <option value="check">{t('payments.check', 'Check')}</option>
+                  <option value="insurance">{t('payments.insurance', 'Insurance')}</option>
                 </select>
               </div>
 
@@ -385,7 +387,7 @@ export default function PaymentsPage() {
                 disabled={submitting || !selectedService || totalAmount <= 0}
                 className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                {submitting ? 'Processing...' : 'Confirm & Process Payment'}
+                {submitting ? t('payments.processing', 'Processing...') : t('payments.confirmProcess', 'Confirm & Process Payment')}
               </button>
             </form>
           </div>
@@ -393,38 +395,38 @@ export default function PaymentsPage() {
           {/* Payment Summary */}
           <div className="bg-white rounded-lg shadow-md p-6 border border-secondary-200 sticky top-4">
             <h3 className="text-lg font-semibold text-primary-700 mb-4">
-              Payment Summary
+              {t('payments.paymentSummary', 'Payment Summary')}
             </h3>
             
             {selectedService ? (
               <div className="space-y-4">
                 <div className="border-b border-secondary-200 pb-4">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-secondary-600">Service:</span>
+                    <span className="text-secondary-600">{t('common.service', 'Service')}:</span>
                     <span className="text-right font-medium text-primary-700">
                       {selectedService.name}
                     </span>
                   </div>
                   {selectedAppointment && (
                     <div className="text-xs text-secondary-500 mt-2">
-                      <div>Date: {new Date(selectedAppointment.appointmentDate).toLocaleDateString()}</div>
-                      <div>Time: {selectedAppointment.appointmentTime}</div>
+                      <div>{t('common.date', 'Date')}: {new Date(selectedAppointment.appointmentDate).toLocaleDateString()}</div>
+                      <div>{t('common.time', 'Time')}: {selectedAppointment.appointmentTime}</div>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-secondary-600">Subtotal:</span>
+                    <span className="text-secondary-600">{t('payments.subtotal')}:</span>
                     <span className="font-medium">${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-secondary-600">Tax ({(TAX_RATE * 100).toFixed(0)}%):</span>
+                    <span className="text-secondary-600">{t('payments.tax')} ({(TAX_RATE * 100).toFixed(0)}%):</span>
                     <span className="font-medium">${taxAmount.toFixed(2)}</span>
                   </div>
                   <div className="border-t border-secondary-200 pt-2 mt-2">
                     <div className="flex justify-between">
-                      <span className="font-semibold text-primary-700">Total:</span>
+                      <span className="font-semibold text-primary-700">{t('payments.total')}:</span>
                       <span className="text-xl font-bold text-primary-600">${totalAmount.toFixed(2)}</span>
                     </div>
                   </div>
@@ -432,11 +434,11 @@ export default function PaymentsPage() {
 
                 <div className="pt-4 border-t border-secondary-200">
                   <div className="flex justify-between text-sm">
-                    <span className="text-secondary-600">Payment Method:</span>
+                    <span className="text-secondary-600">{t('payments.paymentMethod')}:</span>
                     <span className="font-medium capitalize">{formData.paymentMethod}</span>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
-                    <span className="text-secondary-600">Payment Date:</span>
+                    <span className="text-secondary-600">{t('payments.paymentDate', 'Payment Date')}:</span>
                     <span className="font-medium">{new Date().toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -446,7 +448,7 @@ export default function PaymentsPage() {
                 <svg className="mx-auto h-12 w-12 text-secondary-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p className="text-sm">Select a service or appointment to see payment details</p>
+                <p className="text-sm">{t('payments.selectServiceOrAppointment')}</p>
               </div>
             )}
           </div>
@@ -457,7 +459,7 @@ export default function PaymentsPage() {
         <>
           {payments.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-12 text-center">
-              <p className="text-secondary-600">No payment history found</p>
+              <p className="text-secondary-600">{t('payments.noPayments')}</p>
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-md overflow-hidden border border-secondary-200">
@@ -465,11 +467,11 @@ export default function PaymentsPage() {
                 <table className="w-full">
                   <thead className="bg-secondary-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Invoice #</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Service</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Method</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">{t('common.date')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">{t('payments.invoice', 'Invoice #')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">{t('common.service')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">{t('payments.amount')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">{t('payments.method', 'Method')}</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase">Transaction ID</th>
                     </tr>

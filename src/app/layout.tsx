@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { I18nProvider } from '@/components/providers/I18nProvider';
+import { LanguageDirection } from '@/components/providers/LanguageDirection';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -17,15 +19,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.variable}>
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <main className="flex-grow container-responsive py-6 sm:py-8 lg:py-12">
-            {children}
-          </main>
-          <Footer />
-        </div>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.variable} suppressHydrationWarning>
+        <I18nProvider>
+          <LanguageDirection>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-grow container-responsive py-6 sm:py-8 lg:py-12">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </LanguageDirection>
+        </I18nProvider>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import axios from 'axios';
 
@@ -14,6 +15,7 @@ interface Service {
 }
 
 export default function ServicesPage() {
+  const { t, i18n } = useTranslation();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -49,10 +51,15 @@ export default function ServicesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-secondary-600">Loading services...</div>
+        <div className="text-secondary-600">{t('common.loading')}</div>
       </div>
     );
   }
+
+  const getCategoryLabel = (category: string) => {
+    if (category === 'all') return t('common.all');
+    return t(`services.category.${category}`, category.charAt(0).toUpperCase() + category.slice(1));
+  };
 
   return (
     <div className="space-y-8">
@@ -61,10 +68,10 @@ export default function ServicesPage() {
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="relative z-10">
           <h1 className="heading-responsive font-bold mb-4">
-            Our Services
+            {t('services.title')}
           </h1>
           <p className="text-lg opacity-90 max-w-2xl">
-            Explore our comprehensive dental care services designed to keep your smile healthy and bright
+            {t('services.subtitle')}
           </p>
         </div>
         {/* Decorative elements */}
@@ -76,7 +83,7 @@ export default function ServicesPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         <input
           type="text"
-          placeholder="Search services..."
+          placeholder={t('services.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -92,7 +99,7 @@ export default function ServicesPage() {
                   : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
               }`}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {getCategoryLabel(category)}
             </button>
           ))}
         </div>
@@ -120,14 +127,14 @@ export default function ServicesPage() {
               {service.name}
             </h2>
             <p className="text-secondary-600 mb-4 line-clamp-2 relative z-10">
-              {service.description || 'No description available'}
+              {service.description || t('services.noDescription')}
             </p>
             <div className="flex justify-between items-center relative z-10">
               <span className="text-sm text-secondary-500 flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {service.duration} min
+                {service.duration} {t('common.minutes', 'min')}
               </span>
               {service.basePrice && (
                 <span className="text-lg font-semibold text-primary-600">
@@ -146,7 +153,7 @@ export default function ServicesPage() {
 
       {filteredServices.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-secondary-600">No services found matching your search.</p>
+          <p className="text-secondary-600">{t('services.noServices')}</p>
         </div>
       )}
     </div>

@@ -117,22 +117,28 @@ CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);
 CREATE INDEX IF NOT EXISTS idx_follow_ups_appointment_id ON follow_ups(appointment_id);
 CREATE INDEX IF NOT EXISTS idx_follow_ups_user_id ON follow_ups(user_id);
 
--- Create triggers for updated_at
+-- Create triggers for updated_at (drop if exists first)
+DROP TRIGGER IF EXISTS update_waitlist_updated_at ON waitlist;
 CREATE TRIGGER update_waitlist_updated_at BEFORE UPDATE ON waitlist
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_forms_updated_at ON forms;
 CREATE TRIGGER update_forms_updated_at BEFORE UPDATE ON forms
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_notification_preferences_updated_at ON notification_preferences;
 CREATE TRIGGER update_notification_preferences_updated_at BEFORE UPDATE ON notification_preferences
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_office_info_updated_at ON office_info;
 CREATE TRIGGER update_office_info_updated_at BEFORE UPDATE ON office_info
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_follow_ups_updated_at ON follow_ups;
 CREATE TRIGGER update_follow_ups_updated_at BEFORE UPDATE ON follow_ups
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

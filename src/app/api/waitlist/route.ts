@@ -134,14 +134,30 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') || 'active';
 
-    const result = await query(
-      `SELECT w.*, s.name as service_name
-       FROM waitlist w
-       LEFT JOIN services s ON w.service_id = s.id
-       WHERE w.user_id = $1 AND w.status = $2
-       ORDER BY w.preferred_date ASC, w.created_at ASC`,
-      [user.id, status]
-    );
+    let result;
+    try {
+      result = await query(
+        `SELECT w.*, s.name as service_name
+         FROM waitlist w
+         LEFT JOIN services s ON w.service_id = s.id
+         WHERE w.user_id = $1 AND w.status = $2
+         ORDER BY w.preferred_date ASC, w.created_at ASC`,
+        [user.id, status]
+      );
+    } catch (dbError: any) {
+      // If table doesn't exist, provide helpful error message
+      if (dbError.code === '42P01' || dbError.message?.includes('does not exist')) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Waitlist table does not exist. Please run database migrations first.',
+            hint: 'Run: npm run db:migrate'
+          },
+          { status: 500 }
+        );
+      }
+      throw dbError;
+    }
 
     const waitlistEntries = result.rows.map((row) => ({
       id: row.id,
@@ -165,8 +181,17 @@ export async function GET(req: NextRequest) {
     return addCorsHeaders(response, req);
   } catch (error) {
     logger.error('Get waitlist error', error as Error);
+    
+    // Return detailed error in development, generic in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch waitlist' },
+      { 
+        success: false, 
+        error: isDevelopment ? errorMessage : 'Failed to fetch waitlist',
+        ...(isDevelopment && error instanceof Error && { details: error.stack })
+      },
       { status: 500 }
     );
   }
