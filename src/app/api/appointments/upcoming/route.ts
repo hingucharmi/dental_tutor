@@ -40,25 +40,64 @@ export async function GET(req: NextRequest) {
       count: result.rows.length 
     });
 
-    const appointments = result.rows.map((row) => ({
-      id: row.id,
-      userId: row.user_id,
-      dentistId: row.dentist_id,
-      serviceId: row.service_id,
-      serviceName: row.service_name,
-      serviceDescription: row.service_description,
-      appointmentDate: row.appointment_date,
-      appointmentTime: row.appointment_time,
-      duration: row.duration,
-      status: row.status,
-      notes: row.notes,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      hasBeenRescheduled: row.has_been_rescheduled || false,
-      hasBeenCancelled: row.has_been_cancelled || false,
-      rescheduleCount: row.reschedule_count || 0,
-      cancelCount: row.cancel_count || 0,
-    }));
+    // Check form completion for each appointment
+    const appointmentsWithForms = await Promise.all(
+      result.rows.map(async (row) => {
+        // Check form completion status
+        const requiredForms = ['medical_history', 'patient_registration', 'consent_treatment', 'consent_hipaa', 'consent_financial'];
+        const formCheck = await query(
+          `SELECT form_type FROM forms 
+           WHERE appointment_id = $1 AND status = 'submitted'`,
+          [row.id]
+        );
+        const completedFormTypes = formCheck.rows.map(r => r.form_type);
+        const completedCount = completedFormTypes.filter(type => requiredForms.includes(type)).length;
+        const formCompleted = completedCount === requiredForms.length;
+        const formPartiallyCompleted = completedCount > 0 && completedCount < requiredForms.length;
+
+        // Check if prescription exists
+        const prescriptionCheck = await query(
+          `SELECT COUNT(*) as count FROM prescriptions 
+           WHERE appointment_id = $1 AND status = 'active'`,
+          [row.id]
+        );
+        const hasPrescription = parseInt(prescriptionCheck.rows[0]?.count || '0') > 0;
+
+        // Check if care instructions exist (care_instructions table doesn't have appointment_id,
+        // but we can check if there are any general care instructions available)
+        // For now, we'll set this based on whether the appointment is completed
+        const hasCareInstructions = row.status === 'completed';
+
+        return {
+          id: row.id,
+          userId: row.user_id,
+          dentistId: row.dentist_id,
+          serviceId: row.service_id,
+          serviceName: row.service_name,
+          serviceDescription: row.service_description,
+          appointmentDate: row.appointment_date,
+          appointmentTime: row.appointment_time,
+          duration: row.duration,
+          status: row.status,
+          notes: row.notes,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          hasBeenRescheduled: row.has_been_rescheduled || false,
+          hasBeenCancelled: row.has_been_cancelled || false,
+          rescheduleCount: row.reschedule_count || 0,
+          cancelCount: row.cancel_count || 0,
+          formCompleted,
+          formPartiallyCompleted,
+          formCompletedCount: completedCount,
+          formTotalCount: requiredForms.length,
+          preCheckCompleted: formCompleted,
+          hasPrescription,
+          hasCareInstructions,
+        };
+      })
+    );
+
+    const appointments = appointmentsWithForms;
 
     const response = NextResponse.json({
       success: true,

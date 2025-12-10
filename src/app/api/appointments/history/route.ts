@@ -49,21 +49,53 @@ export async function GET(req: NextRequest) {
 
     const result = await query(queryStr, params);
 
-    const appointments = result.rows.map((row) => ({
-      id: row.id,
-      userId: row.user_id,
-      dentistId: row.dentist_id,
-      serviceId: row.service_id,
-      serviceName: row.service_name,
-      serviceDescription: row.service_description,
-      appointmentDate: row.appointment_date,
-      appointmentTime: row.appointment_time,
-      duration: row.duration,
-      status: row.status,
-      notes: row.notes,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    // Check form completion and other metadata for each appointment
+    const appointmentsWithMetadata = await Promise.all(
+      result.rows.map(async (row) => {
+        // Check if forms exist for this appointment
+        const formCheck = await query(
+          `SELECT COUNT(*) as count FROM forms 
+           WHERE appointment_id = $1 AND status = 'submitted'`,
+          [row.id]
+        );
+        const formCompleted = parseInt(formCheck.rows[0]?.count || '0') > 0;
+
+        // Check if prescription exists
+        const prescriptionCheck = await query(
+          `SELECT COUNT(*) as count FROM prescriptions 
+           WHERE appointment_id = $1 AND status = 'active'`,
+          [row.id]
+        );
+        const hasPrescription = parseInt(prescriptionCheck.rows[0]?.count || '0') > 0;
+
+        // Check if care instructions exist (care_instructions table doesn't have appointment_id,
+        // but we can check if there are any general care instructions available)
+        // For now, we'll set this based on whether the appointment is completed
+        const hasCareInstructions = row.status === 'completed';
+
+        return {
+          id: row.id,
+          userId: row.user_id,
+          dentistId: row.dentist_id,
+          serviceId: row.service_id,
+          serviceName: row.service_name,
+          serviceDescription: row.service_description,
+          appointmentDate: row.appointment_date,
+          appointmentTime: row.appointment_time,
+          duration: row.duration,
+          status: row.status,
+          notes: row.notes,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          formCompleted,
+          preCheckCompleted: formCompleted,
+          hasPrescription,
+          hasCareInstructions,
+        };
+      })
+    );
+
+    const appointments = appointmentsWithMetadata;
 
     const response = NextResponse.json({
       success: true,

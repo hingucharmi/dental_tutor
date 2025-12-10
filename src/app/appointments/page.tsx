@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/hooks/useAuth';
 import Link from 'next/link';
 import axios from 'axios';
+import { AppointmentCard } from '@/components/appointments/AppointmentCard';
 
 interface Appointment {
   id: number;
@@ -145,23 +146,6 @@ export default function AppointmentsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
 
   if (authLoading || loading) {
     return (
@@ -273,87 +257,14 @@ export default function AppointmentsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {appointments.map((appointment) => (
-            <div
+            <AppointmentCard
               key={appointment.id}
-              className="bg-white rounded-lg shadow-md p-6 border border-secondary-200"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-primary-700 mb-1">
-                    {appointment.serviceName || 'General Appointment'}
-                  </h3>
-                  <p className="text-sm text-secondary-500">
-                    {formatDate(appointment.appointmentDate)}
-                  </p>
-                  <p className="text-sm text-secondary-500">
-                    {formatTime(appointment.appointmentTime)} ({appointment.duration} min)
-                  </p>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    appointment.status === 'scheduled'
-                      ? 'bg-green-100 text-green-700'
-                      : appointment.status === 'rescheduled'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : appointment.status === 'completed'
-                      ? 'bg-blue-100 text-blue-700'
-                      : appointment.status === 'cancelled'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {appointment.status}
-                </span>
-              </div>
-
-              {appointment.notes && (
-                <p className="text-sm text-secondary-600 mb-4">{appointment.notes}</p>
-              )}
-
-              {activeTab === 'upcoming' && (appointment.status === 'scheduled' || appointment.status === 'rescheduled') && (
-                <div className="flex gap-2 mt-4">
-                  <Link
-                    href={`/appointments/${appointment.id}/reschedule`}
-                    className={`flex-1 px-4 py-2 rounded-lg transition-colors text-center text-sm ${
-                      appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'
-                        : 'bg-secondary-100 text-secondary-700 hover:bg-secondary-200'
-                    }`}
-                    onClick={(e) => {
-                      if (appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)) {
-                        e.preventDefault();
-                        alert(t('appointments.alreadyRescheduled', 'This appointment has already been rescheduled. You can only reschedule an appointment once.'));
-                      }
-                    }}
-                  >
-                    {appointment.hasBeenRescheduled || (appointment.rescheduleCount && appointment.rescheduleCount > 0)
-                      ? t('appointments.alreadyRescheduled', 'Already Rescheduled')
-                      : t('appointments.reschedule')}
-                  </Link>
-                  <button
-                    onClick={() => {
-                      if (appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)) {
-                        alert(t('appointments.alreadyCancelled', 'This appointment has already been cancelled. You can only cancel an appointment once.'));
-                        return;
-                      }
-                      handleCancel(appointment.id);
-                    }}
-                    disabled={appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)}
-                    className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm ${
-                      appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-red-100 text-red-700 hover:bg-red-200'
-                    }`}
-                  >
-                    {appointment.hasBeenCancelled || (appointment.cancelCount && appointment.cancelCount > 0)
-                      ? t('appointments.alreadyCancelled', 'Already Cancelled')
-                      : t('appointments.cancel')}
-                  </button>
-                </div>
-              )}
-            </div>
+              appointment={appointment}
+              onUpdate={fetchAppointments}
+              isHistory={activeTab === 'history'}
+            />
           ))}
         </div>
       )}

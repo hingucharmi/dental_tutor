@@ -155,12 +155,15 @@ export default function BookAppointmentPage() {
       setError(null);
       const token = localStorage.getItem('token');
 
-      // Validate serviceId before sending
-      const serviceIdNum = parseInt(formData.serviceId);
-      if (isNaN(serviceIdNum)) {
-        setError('Please select a valid service');
-        setSubmitting(false);
-        return;
+      // Validate and prepare serviceId
+      let serviceIdNum: number | undefined = undefined;
+      if (formData.serviceId) {
+        serviceIdNum = parseInt(formData.serviceId);
+        if (isNaN(serviceIdNum) || serviceIdNum <= 0) {
+          setError('Please select a valid service');
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Validate time format
@@ -177,12 +180,19 @@ export default function BookAppointmentPage() {
         return;
       }
 
-      const requestData = {
-        serviceId: serviceIdNum,
+      // Build request data - only include serviceId if it's valid
+      const requestData: any = {
         appointmentDate: formData.appointmentDate,
         appointmentTime: formData.appointmentTime,
-        notes: formData.notes || undefined,
       };
+
+      if (serviceIdNum) {
+        requestData.serviceId = serviceIdNum;
+      }
+
+      if (formData.notes && formData.notes.trim()) {
+        requestData.notes = formData.notes.trim();
+      }
 
       console.log('Submitting appointment:', requestData);
 
