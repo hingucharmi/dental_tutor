@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth';
-import { getUserConversations } from '@/lib/services/chatbot';
+import { getUserConversations } from '@/lib/services/rag-chatbot';
 import { addCorsHeaders } from '@/lib/middleware/cors';
 
 export async function OPTIONS(req: NextRequest) {

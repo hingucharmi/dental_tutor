@@ -77,15 +77,23 @@ export default function NotificationsPage() {
             )}
           </p>
         </div>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={unreadOnly}
-            onChange={(e) => setUnreadOnly(e.target.checked)}
-            className="rounded"
-          />
-          <span className="text-sm text-secondary-700">Show unread only</span>
-        </label>
+        <div className="flex items-center gap-4">
+          <a
+            href="/notifications/preferences"
+            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Preferences
+          </a>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={unreadOnly}
+              onChange={(e) => setUnreadOnly(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-secondary-700">Show unread only</span>
+          </label>
+        </div>
       </div>
 
       {notifications.length === 0 ? (

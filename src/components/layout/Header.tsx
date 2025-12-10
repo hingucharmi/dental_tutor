@@ -86,12 +86,6 @@ export function Header() {
                     >
                       {t('common.appointments')}
                     </Link>
-                    <Link
-                      href="/chat"
-                      className="text-secondary-700 hover:text-primary-600 transition-colors whitespace-nowrap"
-                    >
-                      {t('common.chat')}
-                    </Link>
                   </>
                 )}
 
@@ -367,13 +361,6 @@ export function Header() {
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {t('common.appointments')}
-                      </Link>
-                      <Link
-                        href="/chat"
-                        className="block py-2 text-secondary-700 hover:text-primary-600"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {t('common.chat')}
                       </Link>
                     </div>
                   </>

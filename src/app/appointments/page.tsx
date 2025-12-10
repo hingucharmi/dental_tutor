@@ -54,13 +54,23 @@ export default function AppointmentsPage() {
     }
   }, [authLoading, user, activeTab]);
 
-  // Listen for appointment creation events
+  // Listen for appointment creation/update events
   useEffect(() => {
     const handleAppointmentCreated = () => {
       fetchAppointments();
     };
 
+    const handleAppointmentCancelled = () => {
+      fetchAppointments();
+    };
+
+    const handleAppointmentRescheduled = () => {
+      fetchAppointments();
+    };
+
     window.addEventListener('appointment-created', handleAppointmentCreated);
+    window.addEventListener('appointment-cancelled', handleAppointmentCancelled);
+    window.addEventListener('appointment-rescheduled', handleAppointmentRescheduled);
     
     // Check for success/rescheduled query params
     const urlParams = new URLSearchParams(window.location.search);
@@ -89,6 +99,8 @@ export default function AppointmentsPage() {
 
     return () => {
       window.removeEventListener('appointment-created', handleAppointmentCreated);
+      window.removeEventListener('appointment-cancelled', handleAppointmentCancelled);
+      window.removeEventListener('appointment-rescheduled', handleAppointmentRescheduled);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

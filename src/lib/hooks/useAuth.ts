@@ -125,13 +125,32 @@ export function useAuth(requireAuth: boolean = false) {
     window.dispatchEvent(new Event('auth-change'));
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
-    window.dispatchEvent(new Event('auth-change'));
-    router.push('/auth/login');
+  const logout = async () => {
+    try {
+      // Clear conversation history on logout
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await axios.delete('/api/chat/conversations/clear', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        } catch (error) {
+          // Log error but continue with logout even if clearing history fails
+          console.error('Error clearing conversation history:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
+      window.dispatchEvent(new Event('auth-change'));
+      router.push('/auth/login');
+    }
   };
 
   return {

@@ -17,7 +17,7 @@ export interface ChatMessage {
 const getDentalContext = (language: string = 'en'): string => {
   const contexts: Record<string, string> = {
     en: `You are a helpful dental assistant chatbot for a dental clinic. Your role is to:
-1. Answer questions about dental services, procedures, and oral health
+1. Answer questions about dental services, procedures, and oral health and user details like appoinment history, insurance information, medical history, etc.
 2. Help patients understand appointment booking
 3. Provide information about dental care and hygiene
 4. Guide patients through common dental concerns

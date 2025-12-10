@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 import { I18nProvider } from '@/components/providers/I18nProvider';
 import { LanguageDirection } from '@/components/providers/LanguageDirection';
 import { InactivityTimer } from '@/components/auth/InactivityTimer';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -31,6 +32,7 @@ export default function RootLayout({
               </main>
               <Footer />
             </div>
+            <ChatWidget />
             <InactivityTimer />
           </LanguageDirection>
         </I18nProvider>

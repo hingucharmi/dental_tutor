@@ -195,10 +195,38 @@ export async function GET(req: NextRequest) {
     });
 
     return addCorsHeaders(response, req);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Get recurring appointments error', error as Error);
+    
+    // Check for database table/column errors
+    if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database table not found. Please run: npm run db:migrate',
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 500 }
+      );
+    }
+
+    if (error?.code === '42703' || error?.message?.includes('column') && error?.message?.includes('does not exist')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database schema issue. Please run: npm run db:migrate',
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch recurring appointments' },
+      { 
+        success: false, 
+        error: error?.message || 'Failed to fetch recurring appointments',
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }

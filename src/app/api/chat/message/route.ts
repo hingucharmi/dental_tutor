@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/middleware/auth';
-import { getChatResponse } from '@/lib/services/chatbot';
+import { getRAGChatResponse } from '@/lib/services/rag-chatbot';
 import { logger } from '@/lib/utils/logger';
 import { addCorsHeaders } from '@/lib/middleware/cors';
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { message, conversationId, language } = messageSchema.parse(body);
 
-    const { response, conversationId: convId } = await getChatResponse(
+    const chatResponse = await getRAGChatResponse(
       message,
       conversationId || null,
       user.id,
@@ -31,8 +31,10 @@ export async function POST(req: NextRequest) {
     const result = NextResponse.json({
       success: true,
       data: {
-        response,
-        conversationId: convId,
+        response: chatResponse.response,
+        conversationId: chatResponse.conversationId,
+        appointmentAction: chatResponse.appointmentAction || null,
+        appointmentId: chatResponse.appointmentId || null,
       },
     });
 
