@@ -208,13 +208,57 @@ export default function FormsPage() {
     }
   };
 
+  const validatePatientRegistration = () => {
+    const errors: string[] = [];
+    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+
+    if (!patientRegistration.fullName.trim() || patientRegistration.fullName.trim().length < 2) {
+      errors.push(t('forms.validation.fullName', 'Please enter your full name.'));
+    }
+
+    if (!patientRegistration.dateOfBirth) {
+      errors.push(t('forms.validation.dob', 'Please provide your date of birth.'));
+    }
+
+    if (!patientRegistration.address.trim()) {
+      errors.push(t('forms.validation.address', 'Please provide your address.'));
+    }
+
+    if (!phoneRegex.test(patientRegistration.phoneNumber.trim())) {
+      errors.push(t('forms.validation.phone', 'Enter a valid phone number (7-20 digits, may include +, spaces, () or -).'));
+    }
+
+    if (!patientRegistration.emergencyContactName.trim()) {
+      errors.push(t('forms.validation.emergencyName', 'Please provide an emergency contact name.'));
+    }
+
+    if (!phoneRegex.test(patientRegistration.emergencyContactPhone.trim())) {
+      errors.push(t('forms.validation.emergencyPhone', 'Enter a valid emergency contact phone number.'));
+    }
+
+    if (patientRegistration.subscriberDOB && !patientRegistration.subscriberName.trim()) {
+      errors.push(t('forms.validation.subscriberName', 'Add the subscriber name for the provided subscriber DOB.'));
+    }
+
+    return errors.length ? errors.join(' ') : null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeForm) return;
 
-    setSubmitting(true);
     setError(null);
     setSuccess(null);
+
+    if (activeForm === 'patient_registration') {
+      const validationError = validatePatientRegistration();
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+
+    setSubmitting(true);
 
     try {
       let formData = {};
@@ -397,7 +441,7 @@ export default function FormsPage() {
   if (!user) return null;
 
   return (
-    <div className="relative max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    <div className="forms-page relative max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute -top-10 -left-10 h-48 w-48 rounded-full bg-primary-100 blur-3xl opacity-60 -z-10" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-56 w-56 rounded-full bg-secondary-100 blur-3xl opacity-60 -z-10" />
 
@@ -1869,6 +1913,37 @@ export default function FormsPage() {
           </div>
         </div>
       )}
+      <style jsx global>{`
+        .forms-page input[type='text'],
+        .forms-page input[type='email'],
+        .forms-page input[type='tel'],
+        .forms-page input[type='date'],
+        .forms-page input[type='number'],
+        .forms-page select,
+        .forms-page textarea {
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          color: #0f172a;
+          border-radius: 0.5rem;
+          padding: 0.625rem 0.75rem;
+          outline: none;
+          transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+        }
+        .forms-page textarea {
+          min-height: 2.5rem;
+        }
+        .forms-page input::placeholder,
+        .forms-page select::placeholder,
+        .forms-page textarea::placeholder {
+          color: #94a3b8;
+        }
+        .forms-page input:focus,
+        .forms-page select:focus,
+        .forms-page textarea:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+        }
+      `}</style>
     </div>
   );
 }

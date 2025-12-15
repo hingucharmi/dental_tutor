@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import apiClient from '@/lib/utils/apiClient';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,8 @@ export default function SymptomAssessmentPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [existingAssessment, setExistingAssessment] = useState<any | null>(null);
+  const [otherLocation, setOtherLocation] = useState('');
 
   const [formData, setFormData] = useState({
     symptoms: [] as string[],
@@ -38,6 +40,51 @@ export default function SymptomAssessmentPage() {
     'Difficulty Breathing'
   ];
 
+  const locationOptions = useMemo(
+    () => [
+      'Upper right back tooth',
+      'Upper right front tooth',
+      'Upper left front tooth',
+      'Upper left back tooth',
+      'Lower right back tooth',
+      'Lower right front tooth',
+      'Lower left front tooth',
+      'Lower left back tooth',
+      'Entire jaw',
+      'Gums',
+      'Tongue',
+      'Cheek',
+      '__other',
+    ],
+    []
+  );
+
+  useEffect(() => {
+    const fetchExistingAssessment = async () => {
+      if (!user) return;
+      try {
+        const response = await apiClient.get('/api/symptom-assessment');
+        const assessments = response.data?.data?.assessments || [];
+        if (assessments.length > 0) {
+          const latest = assessments[0];
+          setExistingAssessment(latest);
+          setResult({
+            urgencyScore: latest.urgencyScore,
+            triageResult: latest.triageResult,
+            recommendations: latest.recommendations,
+          });
+          setStep(3); // show result state
+        }
+      } catch (err) {
+        // Fail silently; allow new form
+      }
+    };
+
+    if (!authLoading) {
+      fetchExistingAssessment();
+    }
+  }, [authLoading, user]);
+
   const handleSymptomToggle = (symptom: string) => {
     setFormData(prev => {
       const exists = prev.symptoms.includes(symptom);
@@ -55,8 +102,10 @@ export default function SymptomAssessmentPage() {
     setError(null);
 
     try {
+      const finalLocation = formData.location === '__other' ? otherLocation : formData.location;
       const response = await apiClient.post('/api/symptom-assessment', {
         ...formData,
+        location: finalLocation,
         userId: user?.id
       });
 
@@ -94,7 +143,25 @@ export default function SymptomAssessmentPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-secondary-200 overflow-hidden">
-        {step === 1 && (
+        {existingAssessment && (
+          <div className="p-6 md:p-8 bg-red-50 border-b border-red-200">
+            <h2 className="text-xl font-semibold text-red-800 mb-2">Emergency</h2>
+            <p className="text-sm text-red-700 mb-3">
+              You already submitted a symptom assessment. Follow the guidance below; new submissions are blocked to avoid delays.
+            </p>
+            <div className={`p-4 rounded-lg border ${getUrgencyColor(existingAssessment.urgencyScore || 0)}`}>
+              <div className="text-xs uppercase font-semibold text-secondary-700 mb-1">Triage</div>
+              <div className="text-lg font-bold text-primary-800 mb-1">
+                {existingAssessment.recommendations || 'URGENT: Seek immediate emergency dental or medical care.'}
+              </div>
+              <div className="text-sm text-secondary-600">
+                Urgency score: {existingAssessment.urgencyScore ?? '—'} | Result: {existingAssessment.triageResult ?? 'urgent'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && !existingAssessment && (
           <div className="p-6 md:p-8">
             <h2 className="text-xl font-semibold mb-6 flex items-center">
               <span className="bg-primary-100 text-primary-700 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">1</span>
@@ -136,7 +203,7 @@ export default function SymptomAssessmentPage() {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && !existingAssessment && (
           <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
              <h2 className="text-xl font-semibold mb-6 flex items-center">
               <span className="bg-primary-100 text-primary-700 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">2</span>
@@ -185,15 +252,31 @@ export default function SymptomAssessmentPage() {
 
             <div>
               <label className="block text-sm font-medium text-secondary-700 mb-2">
-                Location (optional)
+                Location (required)
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Upper right back tooth"
                 className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
+                required
+              >
+                <option value="">Select area...</option>
+                {locationOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === '__other' ? 'Other' : option}
+                  </option>
+                ))}
+              </select>
+              {formData.location === '__other' && (
+                <input
+                  type="text"
+                  value={otherLocation}
+                  onChange={(e) => setOtherLocation(e.target.value)}
+                  placeholder="Describe the location"
+                  className="mt-2 w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  required
+                />
+              )}
             </div>
 
             <div>

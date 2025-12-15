@@ -18,13 +18,28 @@ export async function GET(
     const { id } = await params;
     const appointmentId = parseInt(id);
 
-    const result = await query(
-      `SELECT a.*, s.name as service_name, s.description as service_description
-       FROM appointments a
-       LEFT JOIN services s ON a.service_id = s.id
-       WHERE a.id = $1 AND a.user_id = $2`,
-      [appointmentId, user.id]
-    );
+    const isAdmin = user.role === 'admin' || user.role === 'staff';
+    const isDentist = user.role === 'dentist';
+
+    let queryStr = `
+      SELECT a.*, s.name as service_name, s.description as service_description
+      FROM appointments a
+      LEFT JOIN services s ON a.service_id = s.id
+      WHERE a.id = $1
+    `;
+    const queryParams: (number | string)[] = [appointmentId];
+
+    if (isAdmin) {
+      // no additional filter
+    } else if (isDentist) {
+      queryStr += ' AND (a.dentist_id = $2 OR a.user_id = $2)';
+      queryParams.push(user.id);
+    } else {
+      queryStr += ' AND a.user_id = $2';
+      queryParams.push(user.id);
+    }
+
+    const result = await query(queryStr, queryParams);
 
     if (result.rows.length === 0) {
       throw new NotFoundError('Appointment not found');

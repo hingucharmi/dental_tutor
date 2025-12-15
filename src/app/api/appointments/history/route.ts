@@ -15,28 +15,49 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate');
     const status = searchParams.get('status');
 
-    // Get today's date in YYYY-MM-DD format (local timezone)
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
-    // Get current time in HH:MM format (local timezone)
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
+    const isAdmin = user.role === 'admin' || user.role === 'staff';
+    const isDentist = user.role === 'dentist';
+    const params: (string | number)[] = [];
+    const historyCutoff = startDate || todayStr;
+
     let queryStr = `
-      SELECT a.*, s.name as service_name, s.description as service_description
+      SELECT a.*, 
+             s.name as service_name, 
+             s.description as service_description,
+             u.first_name,
+             u.last_name,
+             u.email
       FROM appointments a
       LEFT JOIN services s ON a.service_id = s.id
-      WHERE a.user_id = $1 
-      AND (
-        a.appointment_date < $2::date
-        OR (a.appointment_date = $2::date AND a.appointment_time::time < $3::time)
-      )
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE
     `;
-    const params: any[] = [user.id, startDate || todayStr, currentTime];
+
+    if (isAdmin) {
+      queryStr += `
+        (a.appointment_date < $1::date
+         OR (a.appointment_date = $1::date AND a.appointment_time::time < $2::time))
+      `;
+      params.push(historyCutoff, currentTime);
+    } else {
+      const idParam = params.length + 1;
+      queryStr += `
+        ${isDentist ? `a.dentist_id = $${idParam}` : `a.user_id = $${idParam}`}
+        AND (
+          a.appointment_date < $${idParam + 1}::date
+          OR (a.appointment_date = $${idParam + 1}::date AND a.appointment_time::time < $${idParam + 2}::time)
+        )
+      `;
+      params.push(user.id, historyCutoff, currentTime);
+    }
 
     if (endDate) {
-      queryStr += ' AND a.appointment_date >= $3';
+      queryStr += ` AND a.appointment_date >= $${params.length + 1}`;
       params.push(endDate);
     }
 
@@ -49,10 +70,8 @@ export async function GET(req: NextRequest) {
 
     const result = await query(queryStr, params);
 
-    // Check form completion and other metadata for each appointment
     const appointmentsWithMetadata = await Promise.all(
       result.rows.map(async (row) => {
-        // Check if forms exist for this appointment
         const formCheck = await query(
           `SELECT COUNT(*) as count FROM forms 
            WHERE appointment_id = $1 AND status = 'submitted'`,
@@ -60,7 +79,6 @@ export async function GET(req: NextRequest) {
         );
         const formCompleted = parseInt(formCheck.rows[0]?.count || '0') > 0;
 
-        // Check if prescription exists
         const prescriptionCheck = await query(
           `SELECT COUNT(*) as count FROM prescriptions 
            WHERE appointment_id = $1 AND status = 'active'`,
@@ -68,9 +86,6 @@ export async function GET(req: NextRequest) {
         );
         const hasPrescription = parseInt(prescriptionCheck.rows[0]?.count || '0') > 0;
 
-        // Check if care instructions exist (care_instructions table doesn't have appointment_id,
-        // but we can check if there are any general care instructions available)
-        // For now, we'll set this based on whether the appointment is completed
         const hasCareInstructions = row.status === 'completed';
 
         return {
@@ -91,6 +106,9 @@ export async function GET(req: NextRequest) {
           preCheckCompleted: formCompleted,
           hasPrescription,
           hasCareInstructions,
+          patientFirstName: row.first_name,
+          patientLastName: row.last_name,
+          patientEmail: row.email,
         };
       })
     );

@@ -19,85 +19,130 @@ const symptomAssessmentSchema = z.object({
   additionalInfo: z.string().optional(),
 });
 
-function calculateUrgencyScore(symptoms: any, severity?: string, duration?: string): number {
+function parseDurationDays(duration?: string): number | null {
+  if (!duration) return null;
+  const num = parseInt(duration, 10);
+  return Number.isNaN(num) ? null : num;
+}
+
+function detectRedFlags(symptomsLower: string[], severity?: string, duration?: string) {
+  const hasBreathingIssue = symptomsLower.some((s) => s.includes('breath'));
+  const hasSwallowIssue = symptomsLower.some((s) => s.includes('swallow'));
+  const hasFever = symptomsLower.some((s) => s.includes('fever'));
+  const hasSwelling = symptomsLower.some((s) => s.includes('swell'));
+  const hasBleeding = symptomsLower.some((s) => s.includes('bleed'));
+  const hasTrauma = symptomsLower.some((s) => s.includes('trauma') || s.includes('injury') || s.includes('broken'));
+  const severePain = severity === 'severe';
+  const durationDays = parseDurationDays(duration);
+
+  const prolongedSeverePain = severePain && durationDays !== null && durationDays >= 2;
+
+  const redFlag =
+    hasBreathingIssue ||
+    hasSwallowIssue ||
+    (hasFever && hasSwelling) ||
+    hasTrauma ||
+    hasBleeding ||
+    prolongedSeverePain;
+
+  return { redFlag, hasBreathingIssue, hasSwallowIssue, hasFever, hasSwelling, hasBleeding, hasTrauma, prolongedSeverePain };
+}
+
+function calculateUrgencyScore(symptoms: any, severity?: string, duration?: string): { score: number; redFlag: boolean } {
   let score = 0;
-  
+
   // Handle array format
   if (Array.isArray(symptoms)) {
     const symptomsLower = symptoms.map((s: string) => s.toLowerCase());
-    
-    // Check for pain-related symptoms
-    if (symptomsLower.some((s: string) => s.includes('pain') || s.includes('ache'))) {
-      if (severity === 'severe') score += 30;
-      else if (severity === 'moderate') score += 15;
-      else if (severity === 'mild') score += 8;
-      else score += 10; // default
+    const { redFlag, hasFever, hasSwelling, hasBleeding, hasTrauma, hasBreathingIssue, hasSwallowIssue, prolongedSeverePain } =
+      detectRedFlags(symptomsLower, severity, duration);
+
+    // Base severity for pain-related symptoms
+    if (symptomsLower.some((s: string) => s.includes('pain') || s.includes('ache') || s.includes('toothache'))) {
+      if (severity === 'severe') score += 35;
+      else if (severity === 'moderate') score += 20;
+      else if (severity === 'mild') score += 10;
+      else score += 8;
     }
-    
-    // Check for swelling
+
+    // Swelling/facial swelling
     if (symptomsLower.some((s: string) => s.includes('swell'))) {
-      if (severity === 'severe') score += 15;
-      else if (severity === 'moderate') score += 8;
-      else score += 5;
-    }
-    
-    // Check for bleeding
-    if (symptomsLower.some((s: string) => s.includes('bleed'))) {
       score += 15;
     }
-    
-    // Check for fever
-    if (symptomsLower.some((s: string) => s.includes('fever'))) {
-      score += 15;
+
+    // Fever
+    if (hasFever) score += 15;
+
+    // Bleeding
+    if (hasBleeding) score += 20;
+
+    // Trauma (broken tooth, injury)
+    if (hasTrauma) score += 25;
+
+    // Breathing/Swallowing difficulty
+    if (hasBreathingIssue) score = Math.max(score, 85);
+    if (hasSwallowIssue) score = Math.max(score, 80);
+
+    // Fever + swelling combination escalates
+    if (hasFever && hasSwelling) {
+      score = Math.max(score, 80);
     }
-    
-    // Check for difficulty breathing/swallowing
-    if (symptomsLower.some((s: string) => s.includes('breath'))) {
-      score += 25;
+
+    // Prolonged severe pain
+    if (prolongedSeverePain) {
+      score = Math.max(score, 70);
     }
-    if (symptomsLower.some((s: string) => s.includes('swallow'))) {
-      score += 20;
+
+    // Recent onset but acute
+    const durationDays = parseDurationDays(duration);
+    if (durationDays !== null && durationDays <= 1 && severity === 'severe') {
+      score += 5;
     }
-    
-    // Duration factor
-    if (duration) {
-      if (duration.includes('hour') || duration.includes('day') && parseInt(duration) <= 1) {
-        score += 5; // Recent symptoms
-      }
-    }
-  } else {
-    // Handle object format (original logic)
-    if (symptoms.painLevel) {
-      score += parseInt(symptoms.painLevel) * 2;
-    }
-    
-    if (symptoms.bleeding === 'severe') score += 20;
-    else if (symptoms.bleeding === 'moderate') score += 10;
-    else if (symptoms.bleeding === 'mild') score += 5;
-    
-    if (symptoms.swelling === 'severe') score += 15;
-    else if (symptoms.swelling === 'moderate') score += 8;
-    
-    if (symptoms.fever) score += 15;
-    
-    if (symptoms.difficultyBreathing) score += 25;
-    if (symptoms.difficultySwallowing) score += 20;
-    
-    if (symptoms.trauma) score += 15;
+
+    // Cap at 100
+    score = Math.min(score, 100);
+    return { score, redFlag };
   }
-  
-  return Math.min(score, 100);
+
+  // Object format (legacy)
+  if (symptoms.painLevel) {
+    score += parseInt(symptoms.painLevel) * 2;
+  }
+
+  if (symptoms.bleeding === 'severe') score += 20;
+  else if (symptoms.bleeding === 'moderate') score += 10;
+  else if (symptoms.bleeding === 'mild') score += 5;
+
+  if (symptoms.swelling === 'severe') score += 15;
+  else if (symptoms.swelling === 'moderate') score += 8;
+
+  if (symptoms.fever) score += 15;
+
+  if (symptoms.difficultyBreathing) score += 25;
+  if (symptoms.difficultySwallowing) score += 20;
+
+  if (symptoms.trauma) score += 15;
+
+  score = Math.min(score, 100);
+  const redFlag =
+    symptoms.difficultyBreathing ||
+    symptoms.difficultySwallowing ||
+    symptoms.trauma ||
+    symptoms.bleeding === 'severe' ||
+    symptoms.swelling === 'severe';
+
+  return { score, redFlag };
 }
 
-function generateRecommendations(urgencyScore: number, symptoms: any): string {
-  if (urgencyScore >= 70) {
-    return 'URGENT: Please seek immediate emergency dental care or visit the emergency room.';
-  } else if (urgencyScore >= 50) {
-    return 'HIGH PRIORITY: Schedule an urgent appointment within 24 hours.';
-  } else if (urgencyScore >= 30) {
-    return 'MODERATE: Schedule an appointment within 2-3 days.';
+function generateRecommendations(urgencyScore: number, redFlag: boolean): string {
+  if (redFlag || urgencyScore >= 80) {
+    return 'URGENT: Seek immediate emergency dental or medical care (ER/urgent care).';
+  } else if (urgencyScore >= 60) {
+    return 'HIGH PRIORITY: Book an urgent dental visit within 24 hours.';
+  } else if (urgencyScore >= 40) {
+    return 'MODERATE: Schedule a dental appointment in the next 2-3 days.';
   } else {
-    return 'LOW PRIORITY: Schedule a routine appointment when convenient.';
+    return 'LOW PRIORITY: Monitor at home and schedule a routine visit when convenient.';
   }
 }
 
@@ -210,9 +255,17 @@ export async function POST(req: NextRequest) {
       if (data.additionalInfo) symptomsData.additionalInfo = data.additionalInfo;
     }
 
-    const urgencyScore = calculateUrgencyScore(data.symptoms, data.severity, data.duration);
-    const recommendations = generateRecommendations(urgencyScore, symptomsData);
-    const triageResult = urgencyScore >= 70 ? 'urgent' : urgencyScore >= 50 ? 'high' : urgencyScore >= 30 ? 'moderate' : 'low';
+    const { score: urgencyScore, redFlag } = calculateUrgencyScore(data.symptoms, data.severity, data.duration);
+    const recommendations = generateRecommendations(urgencyScore, redFlag);
+    const triageResult = redFlag
+      ? 'urgent'
+      : urgencyScore >= 70
+      ? 'urgent'
+      : urgencyScore >= 50
+      ? 'high'
+      : urgencyScore >= 30
+      ? 'moderate'
+      : 'low';
 
     const result = await query(
       `INSERT INTO symptom_assessments 

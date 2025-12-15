@@ -7,6 +7,7 @@ import axios from 'axios';
 
 interface Appointment {
   id: number;
+  userId?: number;
   appointmentDate: string;
   appointmentTime: string;
   duration: number;
@@ -26,19 +27,29 @@ interface Appointment {
   preCheckCompleted?: boolean;
   hasPrescription?: boolean;
   hasCareInstructions?: boolean;
+  patientFirstName?: string;
+  patientLastName?: string;
+  patientEmail?: string;
 }
 
 interface AppointmentCardProps {
   appointment: Appointment;
   onUpdate?: () => void;
   isHistory?: boolean;
+  canComplete?: boolean;
+  showPatientDetails?: boolean;
 }
 
 type AppointmentState = 'booked' | 'pre_check_done' | 'completed' | 'cancelled';
 
-export function AppointmentCard({ appointment, onUpdate, isHistory = false }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, onUpdate, isHistory = false, canComplete = false, showPatientDetails = false }: AppointmentCardProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [completeLoading, setCompleteLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReasonKey, setCancelReasonKey] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -66,9 +77,38 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
   };
 
   const state = getAppointmentState();
+  const isPreCheckComplete = appointment.preCheckCompleted || appointment.formCompleted;
+  const canMarkComplete = canComplete && isPreCheckComplete && state !== 'completed' && state !== 'cancelled';
+  const patientName = [appointment.patientFirstName, appointment.patientLastName].filter(Boolean).join(' ');
 
-  const handleCancel = async () => {
-    if (!confirm(t('appointments.confirmCancel', 'Are you sure you want to cancel this appointment?'))) {
+  const cancelReasons = [
+    { key: 'schedule', label: t('appointments.cancelReasons.schedule', 'Scheduling conflict') },
+    { key: 'feelingBetter', label: t('appointments.cancelReasons.feelingBetter', 'I am feeling better') },
+    { key: 'cost', label: t('appointments.cancelReasons.cost', 'Cost or insurance concerns') },
+    { key: 'transport', label: t('appointments.cancelReasons.transport', 'Transportation issues') },
+    { key: 'other', label: t('appointments.cancelReasons.other', 'Other') },
+  ];
+
+  const selectedReasonLabel = cancelReasons.find((r) => r.key === cancelReasonKey)?.label || '';
+  const isOtherReason = cancelReasonKey === 'other';
+
+  const handleCancel = () => {
+    setCancelError(null);
+    setCancelReasonKey('');
+    setCustomReason('');
+    setShowCancelDialog(true);
+  };
+
+  const submitCancellation = async () => {
+    if (!cancelReasonKey) {
+      setCancelError(t('appointments.cancelReasons.required', 'Please select a reason.'));
+      return;
+    }
+
+    const finalReason = isOtherReason ? customReason.trim() : selectedReasonLabel;
+
+    if (isOtherReason && !finalReason) {
+      setCancelError(t('appointments.cancelReasons.otherRequired', 'Please provide your reason.'));
       return;
     }
 
@@ -79,12 +119,38 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        data: {
+          reason: finalReason,
+        },
       });
       onUpdate?.();
+      setShowCancelDialog(false);
     } catch (err: any) {
       alert(err.response?.data?.error || t('appointments.cancelError'));
     } finally {
       setLoading(false);
+    }
+  };
+  const canCancel = !(appointment.hasBeenCancelled || (appointment.cancelCount !== undefined && appointment.cancelCount > 0));
+
+  const handleComplete = async () => {
+    try {
+      setCompleteLoading(true);
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `/api/appointments/${appointment.id}/complete`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      onUpdate?.();
+    } catch (err: any) {
+      alert(err.response?.data?.error || t('appointments.completeError', 'Could not mark appointment as completed.'));
+    } finally {
+      setCompleteLoading(false);
     }
   };
 
@@ -184,6 +250,13 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
           <p className="text-sm text-secondary-500">
             {formatTime(appointment.appointmentTime)} • {appointment.duration} {t('common.minutes', 'min')}
           </p>
+          {showPatientDetails && (
+            <p className="text-xs text-secondary-600 mt-1">
+              <span className="font-semibold">{t('appointments.patient', 'Client')}:</span>{' '}
+              {patientName || (appointment.userId ? `ID #${appointment.userId}` : t('appointments.unknownPatient', 'Unknown'))}
+              {appointment.patientEmail ? ` • ${appointment.patientEmail}` : ''}
+            </p>
+          )}
         </div>
         {getStatusBadge()}
       </div>
@@ -276,16 +349,34 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
           </Link>
           <button
             onClick={handleCancel}
-            disabled={loading || appointment.hasBeenCancelled || (appointment.cancelCount !== undefined && appointment.cancelCount > 0)}
+            disabled={loading || !canCancel}
             className={`px-3 py-1.5 rounded-lg transition-colors text-xs whitespace-nowrap ${
-              appointment.hasBeenCancelled || (appointment.cancelCount !== undefined && appointment.cancelCount > 0)
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-red-100 text-red-700 hover:bg-red-200'
+              canCancel
+                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
             {loading ? t('common.loading', 'Loading...') : t('appointments.cancel', 'Cancel')}
           </button>
+          {canComplete && (
+            <button
+              onClick={handleComplete}
+              disabled={!canMarkComplete || completeLoading}
+              className={`px-3 py-1.5 rounded-lg transition-colors text-center text-xs whitespace-nowrap disabled:opacity-60 ${
+                canMarkComplete
+                  ? 'bg-primary-600 text-white hover:bg-primary-700'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {completeLoading ? t('common.loading', 'Loading...') : t('appointments.actions.markCompleted', 'Mark as Completed')}
+            </button>
+          )}
           </div>
+          {canComplete && !isPreCheckComplete && (
+            <p className="text-xs text-secondary-500 mt-1">
+              {t('appointments.completeRequiresForms', 'Complete pre-visit forms before marking completed.')}
+            </p>
+          )}
         </div>
       )}
 
@@ -305,6 +396,12 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
               className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center text-xs font-medium whitespace-nowrap"
             >
               {t('appointments.actions.getDirections', 'Get Directions')}
+            </Link>
+            <Link
+              href={`/preparation-instructions${appointment.serviceId ? `?serviceId=${appointment.serviceId}` : ''}`}
+              className="px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors text-center text-xs whitespace-nowrap"
+            >
+              {t('appointments.actions.viewInstructions', 'View Instructions')}
             </Link>
             <Link
               href="/documents"
@@ -330,16 +427,34 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
             </Link>
             <button
               onClick={handleCancel}
-              disabled={loading || appointment.hasBeenCancelled || (appointment.cancelCount !== undefined && appointment.cancelCount > 0)}
+              disabled={loading || !canCancel}
               className={`px-3 py-1.5 rounded-lg transition-colors text-xs whitespace-nowrap ${
-                appointment.hasBeenCancelled || (appointment.cancelCount !== undefined && appointment.cancelCount > 0)
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                canCancel
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
               {loading ? t('common.loading', 'Loading...') : t('appointments.cancel', 'Cancel')}
             </button>
+            {canComplete && (
+              <button
+                onClick={handleComplete}
+                disabled={!canMarkComplete || completeLoading}
+                className={`px-3 py-1.5 rounded-lg transition-colors text-center text-xs whitespace-nowrap disabled:opacity-60 ${
+                  canMarkComplete
+                    ? 'bg-primary-600 text-white hover:bg-primary-700'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {completeLoading ? t('common.loading', 'Loading...') : t('appointments.actions.markCompleted', 'Mark as Completed')}
+              </button>
+            )}
           </div>
+          {canComplete && !isPreCheckComplete && (
+            <p className="text-xs text-secondary-500 mt-1">
+              {t('appointments.completeRequiresForms', 'Complete pre-visit forms before marking completed.')}
+            </p>
+          )}
         </div>
       )}
 
@@ -364,14 +479,14 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
           <div className="flex gap-2">
             <Link
               href={`/appointments/${appointment.id}/feedback`}
-              className="flex-1 px-4 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors text-center text-sm"
+              className="flex-1 px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors text-center text-sm"
             >
               {t('appointments.actions.leaveFeedback', 'Leave Feedback')}
             </Link>
-            {appointment.hasPrescription && (
+            {(
               <Link
                 href="/prescriptions"
-                className="flex-1 px-4 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors text-center text-sm"
+                className="flex-1 px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors text-center text-sm"
               >
                 {t('appointments.actions.requestRefill', 'Request Refill')}
               </Link>
@@ -380,11 +495,112 @@ export function AppointmentCard({ appointment, onUpdate, isHistory = false }: Ap
         </div>
       )}
 
+      {isHistory && canComplete && state !== 'completed' && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            onClick={handleComplete}
+            disabled={!canMarkComplete || completeLoading}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm disabled:opacity-60 ${
+              canMarkComplete
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {completeLoading ? t('common.loading', 'Loading...') : t('appointments.actions.markCompleted', 'Mark as Completed')}
+          </button>
+        </div>
+      )}
+
       {appointment.notes && (
         <div className="mt-4 pt-4 border-t border-secondary-200">
           <p className="text-sm text-secondary-600">
             <span className="font-medium">{t('appointments.notes', 'Notes')}:</span> {appointment.notes}
           </p>
+        </div>
+      )}
+
+      {showCancelDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-primary-700">
+                {t('appointments.cancelDialog.title', 'Cancel appointment')}
+              </h3>
+              <button
+                onClick={() => setShowCancelDialog(false)}
+                className="text-secondary-500 hover:text-secondary-700"
+                aria-label={t('common.close', 'Close')}
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-secondary-600">
+              {t('appointments.cancelDialog.subtitle', 'Please tell us why you are cancelling.')}
+            </p>
+
+            <div className="space-y-3">
+              {cancelReasons.map((reason) => (
+                <label
+                  key={reason.key}
+                  className="flex items-center gap-3 p-3 border border-secondary-200 rounded-lg hover:border-primary-300 cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name={`cancel-reason-${appointment.id}`}
+                    value={reason.key}
+                    checked={cancelReasonKey === reason.key}
+                    onChange={() => {
+                      setCancelReasonKey(reason.key);
+                      setCancelError(null);
+                    }}
+                  />
+                  <span className="text-sm text-secondary-700">{reason.label}</span>
+                </label>
+              ))}
+
+              {isOtherReason && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-secondary-700" htmlFor={`cancel-other-${appointment.id}`}>
+                    {t('appointments.cancelDialog.otherLabel', 'Other reason')}
+                  </label>
+                  <textarea
+                    id={`cancel-other-${appointment.id}`}
+                    className="w-full border border-secondary-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary-200 focus:border-primary-400"
+                    rows={3}
+                    placeholder={t('appointments.cancelDialog.otherPlaceholder', 'Type your reason...')}
+                    value={customReason}
+                    onChange={(e) => {
+                      setCustomReason(e.target.value);
+                      setCancelError(null);
+                    }}
+                  />
+                </div>
+              )}
+
+              {cancelError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {cancelError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowCancelDialog(false)}
+                className="px-4 py-2 text-secondary-700 bg-secondary-100 rounded-lg hover:bg-secondary-200 text-sm"
+              >
+                {t('common.back', 'Back')}
+              </button>
+              <button
+                onClick={submitCancellation}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-60"
+              >
+                {loading ? t('common.loading', 'Loading...') : t('appointments.cancel', 'Cancel')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

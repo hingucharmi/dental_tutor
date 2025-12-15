@@ -11,30 +11,48 @@ export async function OPTIONS(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = requireAuth(req);
-    // Get today's date in YYYY-MM-DD format (local timezone)
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
-    // Get current time in HH:MM format (local timezone)
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-    // Query: Show appointments where date >= today (simplified for reliability)
-    // For today's appointments, we'll show all of them and filter by time on the client if needed
-    const result = await query(
-      `SELECT a.*, s.name as service_name, s.description as service_description
-       FROM appointments a
-       LEFT JOIN services s ON a.service_id = s.id
-       WHERE a.user_id = $1 
-       AND a.status != 'cancelled'
-       AND a.appointment_date >= $2::date
-       ORDER BY a.appointment_date ASC, a.appointment_time ASC
-       LIMIT 50`,
-      [user.id, todayStr]
-    );
+    const isAdmin = user.role === 'admin' || user.role === 'staff';
+    const isDentist = user.role === 'dentist';
+
+    const params: (string | number)[] = [];
+    let queryStr = `
+      SELECT a.*, 
+             s.name as service_name, 
+             s.description as service_description,
+             u.first_name,
+             u.last_name,
+             u.email
+      FROM appointments a
+      LEFT JOIN services s ON a.service_id = s.id
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE a.status != 'cancelled'
+        AND a.appointment_date >= $1::date
+    `;
+
+    // Adjust filters based on role
+    if (isAdmin) {
+      params.push(todayStr);
+    } else if (isDentist) {
+      queryStr += ' AND (a.dentist_id = $2 OR a.dentist_id IS NULL)';
+      params.push(todayStr, user.id);
+    } else {
+      queryStr += ' AND a.user_id = $2';
+      params.push(todayStr, user.id);
+    }
+
+    queryStr += ' ORDER BY a.appointment_date ASC, a.appointment_time ASC LIMIT 50';
+
+    const result = await query(queryStr, params);
 
     logger.info('Upcoming appointments query', { 
       userId: user.id, 
+      role: user.role,
       todayStr, 
       currentTime,
       count: result.rows.length 
@@ -43,7 +61,6 @@ export async function GET(req: NextRequest) {
     // Check form completion for each appointment
     const appointmentsWithForms = await Promise.all(
       result.rows.map(async (row) => {
-        // Check form completion status
         const requiredForms = ['medical_history', 'patient_registration', 'consent_treatment', 'consent_hipaa', 'consent_financial'];
         const formCheck = await query(
           `SELECT form_type FROM forms 
@@ -55,7 +72,6 @@ export async function GET(req: NextRequest) {
         const formCompleted = completedCount === requiredForms.length;
         const formPartiallyCompleted = completedCount > 0 && completedCount < requiredForms.length;
 
-        // Check if prescription exists
         const prescriptionCheck = await query(
           `SELECT COUNT(*) as count FROM prescriptions 
            WHERE appointment_id = $1 AND status = 'active'`,
@@ -63,9 +79,6 @@ export async function GET(req: NextRequest) {
         );
         const hasPrescription = parseInt(prescriptionCheck.rows[0]?.count || '0') > 0;
 
-        // Check if care instructions exist (care_instructions table doesn't have appointment_id,
-        // but we can check if there are any general care instructions available)
-        // For now, we'll set this based on whether the appointment is completed
         const hasCareInstructions = row.status === 'completed';
 
         return {
@@ -93,6 +106,9 @@ export async function GET(req: NextRequest) {
           preCheckCompleted: formCompleted,
           hasPrescription,
           hasCareInstructions,
+          patientFirstName: row.first_name,
+          patientLastName: row.last_name,
+          patientEmail: row.email,
         };
       })
     );
