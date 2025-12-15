@@ -84,6 +84,20 @@ export default function ChatPage() {
           setConversationId(response.data.data.conversationId);
         }
         
+        // Handle appointment actions - dispatch events to refresh appointment list
+        if (response.data.data.appointmentAction) {
+          const action = response.data.data.appointmentAction;
+          const appointmentId = response.data.data.appointmentId;
+          
+          if (action === 'booked') {
+            window.dispatchEvent(new CustomEvent('appointment-created', { detail: { appointmentId } }));
+          } else if (action === 'cancelled') {
+            window.dispatchEvent(new CustomEvent('appointment-cancelled', { detail: { appointmentId } }));
+          } else if (action === 'rescheduled') {
+            window.dispatchEvent(new CustomEvent('appointment-rescheduled', { detail: { appointmentId } }));
+          }
+        }
+        
         // Auto-play voice output if enabled
         if (voiceEnabled) {
           // VoiceOutput component will handle this

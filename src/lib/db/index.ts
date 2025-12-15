@@ -96,3 +96,29 @@ export async function testConnection(): Promise<boolean> {
   }
 }
 
+/**
+ * Execute a function within a database transaction.
+ * Automatically handles BEGIN, COMMIT, and ROLLBACK.
+ * 
+ * @param callback Function that receives a client and returns a Promise
+ * @returns The result of the callback function
+ */
+export async function withTransaction<T>(
+  callback: (client: any) => Promise<T>
+): Promise<T> {
+  const pool = getPool();
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
