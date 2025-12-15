@@ -1989,4 +1989,3 @@ export async function getUserConversations(userId: number) {
 
   return result.rows;
 }
-
