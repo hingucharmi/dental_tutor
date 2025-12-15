@@ -78,9 +78,31 @@ export default function DashboardPage() {
           </p>
         </Link>
 
+        {(isPatient || isDentist || isAdmin) && (
+          <Link
+            href="/recurring-appointments"
+            className="group p-6 bg-white rounded-xl shadow-md hover:shadow-2xl transition-all transform hover:-translate-y-2 border border-secondary-200 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-100 to-green-100 rounded-full -mr-12 -mt-12 opacity-50 group-hover:opacity-75 transition-opacity"></div>
+            <div className="relative z-10 w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2v-5a2 2 0 00-2-2h-1a1 1 0 01-1-1V6a4 4 0 10-8 0v3a1 1 0 01-1 1H6a2 2 0 00-2 2v5a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">
+              {t('common.recurringAppointments', 'Recurring Appointments')}
+            </h2>
+            <p className="text-secondary-600 relative z-10">
+              {isAdmin || isDentist
+                ? t('appointments.subtitleAdmin', 'Manage recurring schedules')
+                : t('appointments.subtitlePatient', 'Manage your recurring visits')}
+            </p>
+          </Link>
+        )}
+
         {isPatient && (
           <>
-            <Link
+            {/* <Link
               href="/chat"
               className="group p-6 bg-white rounded-xl shadow-md hover:shadow-2xl transition-all transform hover:-translate-y-2 border border-secondary-200 relative overflow-hidden"
             >
@@ -92,7 +114,7 @@ export default function DashboardPage() {
               </div>
               <h2 className="text-xl font-semibold mb-2 text-primary-700 relative z-10">{t('common.chatAssistant')}</h2>
               <p className="text-secondary-600 relative z-10">{t('home.aiAssistantDesc')}</p>
-            </Link>
+            </Link> */}
 
             <Link
               href="/waitlist"

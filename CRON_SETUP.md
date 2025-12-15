@@ -6,7 +6,10 @@ This guide explains how to set up automated appointment reminders using cron job
 
 The appointment reminder system processes reminders every 5-15 minutes by calling the `/api/reminders/process` endpoint. This endpoint:
 - Finds appointments needing reminders based on user preferences
-- Sends reminders via Email/SMS/Push based on user preferences
+- Sends reminders via Email/SMS/P
+
+
+ush based on user preferences
 - Handles timezone conversions
 - Prevents duplicate reminders (idempotency)
 
@@ -184,4 +187,47 @@ Monitor cron job execution:
 - Set `CLINIC_TIMEZONE` environment variable
 - Ensure user timezones are stored in database
 - Check reminder time calculations in logs
+
+## Waitlist processing (slots opening)
+
+To support **waitlist notifications** (\"Join waitlist for preferred time slots, get notified when slots open\"), the app exposes a separate cron endpoint:
+
+- `POST /api/waitlist/process` – scans active waitlist entries and:
+  - Checks if the preferred time (or any time that day) is currently available
+  - Sends Email/SMS notifications based on user notification preferences
+  - If `autoBook` was enabled and an exact preferred time exists, automatically books the appointment and marks the waitlist entry as converted
+
+### Cron setup (same pattern as reminders)
+
+- **Vercel `vercel.json` example**:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/reminders/process",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/waitlist/process",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}
+```
+
+- **External cron / server cron** (example):
+
+```bash
+*/10 * * * * curl -X POST https://your-domain.com/api/waitlist/process -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+### Testing waitlist processing
+
+```bash
+curl -X POST https://your-domain.com/api/waitlist/process \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+You should get a JSON response indicating how many waitlist entries were processed, how many users were notified, and how many were auto-booked.
 

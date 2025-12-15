@@ -120,7 +120,7 @@ export function Header() {
                 <LanguageSwitcher />
 
                 {/* More Menu Dropdown - For Additional Links */}
-                {(isPatient || isAdmin) && (
+                {(isPatient || isAdmin || isDentist) && (
                   <div className="relative" ref={moreMenuRef}>
                     <button
                       onClick={() => setMoreMenuOpen(!moreMenuOpen)}
@@ -139,15 +139,8 @@ export function Header() {
 
                     {moreMenuOpen && (
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-secondary-200 py-2 z-50">
-                        {isPatient && (
+                        {(isPatient || isDentist) && (
                           <>
-                            <Link
-                              href="/documents"
-                              className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
-                              onClick={() => setMoreMenuOpen(false)}
-                            >
-                              {t('common.documents')}
-                            </Link>
                             <Link
                               href="/referrals"
                               className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
@@ -163,26 +156,26 @@ export function Header() {
                               {t('common.recommendations')}
                             </Link>
                             <Link
-                              href="/images"
-                              className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
-                              onClick={() => setMoreMenuOpen(false)}
-                            >
-                              {t('common.images')}
-                            </Link>
-                            <Link
                               href="/loyalty"
                               className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
                               onClick={() => setMoreMenuOpen(false)}
                             >
                               {t('common.loyalty')}
                             </Link>
-                            <Link
+                            {/* <Link
+                              href="/recurring-appointments"
+                              className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
+                              onClick={() => setMoreMenuOpen(false)}
+                            >
+                              {t('common.recurringAppointments', 'Recurring Appointments')}
+                            </Link> */}
+                            {/* <Link
                               href="/prescriptions"
                               className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
                               onClick={() => setMoreMenuOpen(false)}
                             >
                               {t('common.prescriptions')}
-                            </Link>
+                            </Link> */}
                             <Link
                               href="/insurance"
                               className="block px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 hover:text-primary-600 transition-colors"
@@ -226,24 +219,6 @@ export function Header() {
                       </div>
                     )}
                   </div>
-                )}
-
-                {/* For Dentist - Show Profile and Notifications directly */}
-                {isDentist && !isPatient && (
-                  <>
-                    <Link
-                      href="/profile"
-                      className="text-secondary-700 hover:text-primary-600 transition-colors whitespace-nowrap"
-                    >
-                      {t('common.profile')}
-                    </Link>
-                    <Link
-                      href="/notifications"
-                      className="text-secondary-700 hover:text-primary-600 transition-colors whitespace-nowrap"
-                    >
-                      {t('common.notifications')}
-                    </Link>
-                  </>
                 )}
 
                 {/* User Info and Logout - Always Visible */}
@@ -377,13 +352,6 @@ export function Header() {
                       {t('common.payments')}
                     </Link>
                     <Link
-                      href="/documents"
-                      className="block py-2 text-secondary-700 hover:text-primary-600"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {t('common.documents')}
-                    </Link>
-                    <Link
                       href="/referrals"
                       className="block py-2 text-secondary-700 hover:text-primary-600"
                       onClick={() => setMobileMenuOpen(false)}
@@ -398,26 +366,19 @@ export function Header() {
                       {t('common.recommendations')}
                     </Link>
                     <Link
-                      href="/images"
-                      className="block py-2 text-secondary-700 hover:text-primary-600"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {t('common.images')}
-                    </Link>
-                    <Link
                       href="/loyalty"
                       className="block py-2 text-secondary-700 hover:text-primary-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {t('common.loyalty')}
                     </Link>
-                    <Link
+                    {/* <Link
                       href="/prescriptions"
                       className="block py-2 text-secondary-700 hover:text-primary-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {t('common.prescriptions')}
-                    </Link>
+                    </Link> */}
                     <Link
                       href="/insurance"
                       className="block py-2 text-secondary-700 hover:text-primary-600"

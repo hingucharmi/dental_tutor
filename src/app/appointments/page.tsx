@@ -9,6 +9,7 @@ import { AppointmentCard } from '@/components/appointments/AppointmentCard';
 
 interface Appointment {
   id: number;
+  userId?: number;
   appointmentDate: string;
   appointmentTime: string;
   duration: number;
@@ -21,6 +22,9 @@ interface Appointment {
   hasBeenCancelled?: boolean;
   rescheduleCount?: number;
   cancelCount?: number;
+  patientFirstName?: string;
+  patientLastName?: string;
+  patientEmail?: string;
 }
 
 export default function AppointmentsPage() {
@@ -35,6 +39,7 @@ export default function AppointmentsPage() {
   const isAdmin = user?.role === 'admin' || user?.role === 'staff';
   const isDentist = user?.role === 'dentist';
   const isPatient = user?.role === 'patient' || !user?.role;
+  const canManageAsProvider = isDentist || isAdmin;
 
   const getPageTitle = () => {
     if (isAdmin) return t('appointments.manageTitle');
@@ -192,7 +197,17 @@ export default function AppointmentsPage() {
             </Link>
             <Link
               href="/recurring-appointments"
-              className="px-6 py-3 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors"
+              className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              {t('common.recurringAppointments', 'Recurring Appointments')}
+            </Link>
+          </div>
+        )}
+        {(isDentist || isAdmin) && (
+          <div className="flex gap-3">
+            <Link
+              href="/recurring-appointments"
+              className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-200 transition-colors"
             >
               {t('common.recurringAppointments', 'Recurring Appointments')}
             </Link>
@@ -276,6 +291,8 @@ export default function AppointmentsPage() {
               appointment={appointment}
               onUpdate={fetchAppointments}
               isHistory={activeTab === 'history'}
+              canComplete={canManageAsProvider}
+              showPatientDetails={canManageAsProvider}
             />
           ))}
         </div>

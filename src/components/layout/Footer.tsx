@@ -5,10 +5,20 @@ import { useTranslation } from 'react-i18next';
 
 export function Footer() {
   const { t } = useTranslation();
+  const officeHours = {
+    monday: '09:00 - 17:00',
+    tuesday: '09:00 - 17:00',
+    wednesday: '09:00 - 17:00',
+    thursday: '09:00 - 17:00',
+    friday: '09:00 - 15:00',
+    saturday: 'Closed',
+    sunday: 'Closed',
+  };
+
   return (
     <footer className="bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-900 text-secondary-300 mt-auto border-t border-secondary-700">
       <div className="container-responsive py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div>
             <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-2">
               <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,6 +112,22 @@ export function Footer() {
                   {t('footer.termsOfService')}
                 </Link>
               </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {t('footer.officeHours', 'Office Hours')}
+            </h4>
+            <ul className="space-y-2 text-sm">
+              {Object.entries(officeHours).map(([day, hours]) => (
+                <li key={day} className="flex justify-between gap-4 capitalize">
+                  <span className="text-secondary-400">{day}</span>
+                  <span className="text-secondary-200">{hours}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

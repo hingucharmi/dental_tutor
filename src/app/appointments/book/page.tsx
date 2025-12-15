@@ -9,6 +9,7 @@ interface Service {
   id: number;
   name: string;
   duration: number;
+  basePrice?: number | null;
 }
 
 // Slots are returned as strings (time strings like "09:00")
@@ -81,7 +82,7 @@ export default function BookAppointmentPage() {
       }
 
       console.log('Fetching slots for date:', formData.appointmentDate, 'params:', params);
-
+      
       const response = await axios.get('/api/appointments/slots', {
         params,
         // Slots API doesn't require auth, but won't hurt to send it
@@ -140,6 +141,21 @@ export default function BookAppointmentPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const selectedService = services.find(
+    (service) => String(service.id) === String(formData.serviceId)
+  );
+
+  const formatPrice = (price?: number | null) => {
+    if (price === null || price === undefined || Number.isNaN(price)) {
+      return 'Price not available';
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(price);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -298,6 +314,11 @@ export default function BookAppointmentPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Service pre-selected from service page
+            </p>
+          )}
+          {selectedService && (
+            <p className="mt-2 text-sm text-secondary-700">
+              Price: <span className="font-semibold text-primary-700">{formatPrice(selectedService.basePrice)}</span>
             </p>
           )}
         </div>
